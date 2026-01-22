@@ -1,0 +1,198 @@
+import { useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
+import { cn } from '@/lib/utils';
+import {
+  LayoutDashboard,
+  Users,
+  Users2,
+  Briefcase,
+  Calendar,
+  FileText,
+  Settings,
+  ChevronLeft,
+  ChevronRight,
+  LogOut,
+  UserCheck,
+  ClipboardList,
+  Building2,
+  FolderKanban,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+
+interface NavItem {
+  icon: React.ElementType;
+  label: string;
+  href: string;
+  roles: string[];
+  permissionKey?: string; // Maps to permission feature key
+}
+
+const navItems: NavItem[] = [
+  { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard', roles: ['super_admin', 'admin', 'hiring_manager', 'interviewer'], permissionKey: 'dashboard' },
+  { icon: Users, label: 'User Management', href: '/users', roles: ['super_admin'] }, // No permission key - only super admin or users with canManageUsers
+  { icon: Briefcase, label: 'Demands', href: '/demands', roles: ['super_admin', 'admin', 'hiring_manager'], permissionKey: 'demands' },
+  { icon: Users2, label: 'Demand Roles', href: '/demand-roles', roles: ['super_admin', 'admin', 'hiring_manager'], permissionKey: 'demandRoles' },
+  { icon: ClipboardList, label: 'Candidates', href: '/candidates', roles: ['super_admin', 'admin', 'hiring_manager'], permissionKey: 'candidates' },
+  { icon: Calendar, label: 'Interviews', href: '/interviews', roles: ['super_admin', 'admin', 'interviewer'], permissionKey: 'interviews' },
+  { icon: FileText, label: 'Offers', href: '/offers', roles: ['super_admin', 'admin'], permissionKey: 'offers' },
+  { icon: UserCheck, label: 'Onboarding', href: '/onboarding', roles: ['super_admin', 'admin'], permissionKey: 'onboarding' },
+  { icon: Users2, label: 'Bench Resources', href: '/bench', roles: ['super_admin', 'admin'], permissionKey: 'bench' },
+  { icon: FolderKanban, label: 'Projects', href: '/projects', roles: ['super_admin', 'admin'], permissionKey: 'projects' },
+];
+
+export const Sidebar = () => {
+  const [collapsed, setCollapsed] = useState(false);
+  const location = useLocation();
+  const { user, logout } = useAuth();
+
+  const filteredNavItems = navItems.filter(item => {
+    if (!user?.role) return false;
+
+    // Check if user's role is allowed
+    if (!item.roles.includes(user.role)) return false;
+
+    // Super admin role or isSuperAdmin permission always has access
+    if (user.role === 'super_admin' || user.permissions?.isSuperAdmin) return true;
+
+    // For User Management page, check canManageUsers permission
+    if (item.href === '/users') {
+      return user.permissions?.canManageUsers || false;
+    }
+
+    // Check feature permission if permissionKey exists
+    if (item.permissionKey && user.permissions?.features) {
+      return user.permissions.features[item.permissionKey as keyof typeof user.permissions.features] || false;
+    }
+
+    // Default to true if no permission key (shouldn't happen now)
+    return true;
+  });
+
+  const getRoleDisplayName = (role: string) => {
+    const roleNames: Record<string, string> = {
+      super_admin: 'Super Admin',
+      admin: 'Admin (HR)',
+      hiring_manager: 'Hiring Manager',
+      interviewer: 'Interviewer',
+    };
+    return roleNames[role] || role;
+  };
+
+  return (
+    <aside
+      className={cn(
+        'sidebar-gradient h-screen flex flex-col transition-all duration-300 border-r border-sidebar-border',
+        collapsed ? 'w-16' : 'w-64'
+      )}
+    >
+      {/* Logo */}
+      <div className="h-16 flex items-center justify-between px-4 border-b border-sidebar-border">
+        {!collapsed && (
+          <div className="flex items-center gap-2">
+            <Building2 className="h-8 w-8 text-sidebar-primary" />
+            <span className="font-bold text-lg text-sidebar-foreground">HireFlow</span>
+          </div>
+        )}
+        {collapsed && <Building2 className="h-8 w-8 text-sidebar-primary mx-auto" />}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setCollapsed(!collapsed)}
+          className="text-sidebar-foreground hover:bg-sidebar-accent hidden lg:flex"
+        >
+          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+        </Button>
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
+        {filteredNavItems.map((item) => {
+          const isActive = location.pathname === item.href;
+          const Icon = item.icon;
+
+          const linkContent = (
+            <Link
+              to={item.href}
+              className={cn(
+                'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200',
+                isActive
+                  ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-md'
+                  : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground'
+              )}
+            >
+              <Icon className="h-5 w-5 flex-shrink-0" />
+              {!collapsed && <span className="font-medium">{item.label}</span>}
+            </Link>
+          );
+
+          if (collapsed) {
+            return (
+              <Tooltip key={item.href} delayDuration={0}>
+                <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
+                <TooltipContent side="right" className="bg-card text-card-foreground border">
+                  {item.label}
+                </TooltipContent>
+              </Tooltip>
+            );
+          }
+
+          return <div key={item.href}>{linkContent}</div>;
+        })}
+      </nav>
+
+      {/* User section */}
+      <div className="p-4 border-t border-sidebar-border">
+        {!collapsed ? (
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-sidebar-primary/20 flex items-center justify-center">
+                <span className="text-sidebar-primary font-semibold">
+                  {user?.name?.charAt(0) || 'U'}
+                </span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-sidebar-foreground truncate">
+                  {user?.name}
+                </p>
+                <p className="text-xs text-sidebar-foreground/60 truncate">
+                  {user?.role && getRoleDisplayName(user.role)}
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={logout}
+              className="w-full justify-start text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Sign Out
+            </Button>
+          </div>
+        ) : (
+          <Tooltip delayDuration={0}>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={logout}
+                className="w-full text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+              >
+                <LogOut className="h-5 w-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="bg-card text-card-foreground border">
+              Sign Out
+            </TooltipContent>
+          </Tooltip>
+        )}
+      </div>
+    </aside>
+  );
+};

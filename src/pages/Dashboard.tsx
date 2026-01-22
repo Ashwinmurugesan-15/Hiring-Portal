@@ -1,0 +1,584 @@
+import { useState } from 'react';
+import { useAuth } from '@/context/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { StatsCard } from '@/components/dashboard/StatsCard';
+import { DemandCard } from '@/components/dashboard/DemandCard';
+import { CandidatePipeline } from '@/components/dashboard/CandidatePipeline';
+import { RecentInterviews } from '@/components/dashboard/RecentInterviews';
+import { mockDemands, mockDashboardStats, mockCandidates, mockInterviews, mockBenchResources } from '@/data/mockData';
+import { useDemands } from '@/context/DemandsContext';
+import { Demand } from '@/types/recruitment';
+import {
+  Briefcase,
+  Users,
+  Calendar,
+  FileCheck,
+  UserCheck,
+  UserX,
+  Clock,
+  CheckCircle2,
+  Users2,
+  FolderKanban,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Plus, XCircle } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { format } from 'date-fns';
+import { CreateDemandDialog } from '@/components/dialogs/CreateDemandDialog';
+import { DemandDetailsDialog } from '@/components/dialogs/DemandDetailsDialog';
+import { ConfirmDialog } from '@/components/dialogs/ConfirmDialog';
+import { toast } from 'sonner';
+
+const Dashboard = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  // Use global demands state
+  const { demands, addDemand, updateDemand, closeDemand, reopenDemand } = useDemands();
+  // const [demands, setDemands] = useState(mockDemands); // Removed local state
+
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [selectedDemand, setSelectedDemand] = useState<Demand | null>(null);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isCloseConfirmOpen, setIsCloseConfirmOpen] = useState(false);
+
+  const stats = mockDashboardStats;
+
+  // Calculate role-specific stats
+  const totalApplied = mockCandidates.length;
+  const totalOffered = mockCandidates.filter(c =>
+    ['offer_rolled', 'offer_accepted', 'onboarding', 'onboarded'].includes(c.status)
+  ).length;
+  const totalRejected = mockCandidates.filter(c =>
+    ['rejected', 'offer_rejected'].includes(c.status)
+  ).length;
+  const totalInterviews = mockInterviews.length;
+  const totalInterviewed = mockCandidates.filter(c =>
+    ['interview_scheduled', 'interview_completed', 'selected', 'offer_rolled', 'offer_accepted', 'onboarding', 'onboarded'].includes(c.status)
+  ).length;
+
+  // Calculate rejection percentages for admin/super admin
+  const screeningRejected = mockCandidates.filter(c => 
+    c.status === 'rejected' && (!c.currentRound || c.currentRound === undefined)
+  ).length;
+  const screeningTotal = mockCandidates.filter(c => 
+    c.status === 'rejected' || ['screening', 'interview_scheduled', 'interview_completed', 'selected', 'offer_rolled', 'offer_accepted', 'onboarding', 'onboarded'].includes(c.status)
+  ).length;
+  const screeningRejectionPercentage = screeningTotal > 0 ? Math.round((screeningRejected / screeningTotal) * 100) : 0;
+
+  const round1Rejected = mockCandidates.filter(c => 
+    c.status === 'rejected' && c.currentRound === 1
+  ).length;
+  const round1Total = mockCandidates.filter(c => 
+    c.currentRound >= 1
+  ).length;
+  const round1RejectionPercentage = round1Total > 0 ? Math.round((round1Rejected / round1Total) * 100) : 0;
+
+  const round2Rejected = mockCandidates.filter(c => 
+    c.status === 'rejected' && c.currentRound === 2
+  ).length;
+  const round2Total = mockCandidates.filter(c => 
+    c.currentRound >= 2
+  ).length;
+  const round2RejectionPercentage = round2Total > 0 ? Math.round((round2Rejected / round2Total) * 100) : 0;
+
+  // Calculate rejected per demand
+  const getRejectedForDemand = (demandId: string) => {
+    return mockCandidates.filter(c =>
+      c.demandId === demandId && ['rejected', 'offer_rejected'].includes(c.status)
+    ).length;
+  };
+
+  const getRoleGreeting = () => {
+    switch (user?.role) {
+      case 'super_admin':
+        return "Here's your complete hiring overview";
+      case 'admin':
+        return "Manage candidates and schedule interviews";
+      case 'hiring_manager':
+        return "Track your demands and hiring progress";
+      case 'interviewer':
+        return "Your upcoming interviews at a glance";
+      default:
+        return "Welcome to your recruitment portal";
+    }
+  };
+
+  const handleCreateDemand = (newDemand: Omit<Demand, 'id' | 'createdAt' | 'applicants' | 'interviewed' | 'offers'>) => {
+    addDemand(newDemand);
+  };
+
+  const handleViewDetails = (demand: Demand) => {
+    setSelectedDemand(demand);
+    setIsDetailsOpen(true);
+  };
+
+  const handleEditDemand = (demand: Demand) => {
+    setSelectedDemand(demand);
+    setIsEditOpen(true);
+  };
+
+  const handleCloseDemand = (demand: Demand) => {
+    setSelectedDemand(demand);
+    setIsCloseConfirmOpen(true);
+  };
+
+  const confirmCloseDemand = () => {
+    if (!selectedDemand) return;
+    closeDemand(selectedDemand.id);
+    toast.success(`Position "${selectedDemand.title}" has been closed`);
+    setIsCloseConfirmOpen(false);
+  };
+
+  const handleSaveDemand = (updatedDemand: Demand) => {
+    updateDemand(updatedDemand);
+  };
+
+  // Interviewer Dashboard - Only shows interviews
+  if (user?.role === 'interviewer') {
+    return (
+      <DashboardLayout title="Dashboard">
+        <div className="space-y-6 animate-fade-in">
+          {/* Welcome Section */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h2 className="text-2xl font-bold text-foreground">
+                Good morning, {user?.name?.split(' ')[0]}! 👋
+              </h2>
+              <p className="text-muted-foreground mt-1">{getRoleGreeting()}</p>
+            </div>
+          </div>
+
+          {/* Stats for Interviewer */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <StatsCard
+              title="Today's Interviews"
+              value={mockInterviews.filter(i =>
+                format(i.scheduledAt, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')
+              ).length}
+              icon={<Calendar className="h-5 w-5" />}
+              variant="primary"
+            />
+            <StatsCard
+              title="This Week"
+              value={stats.interviewsScheduled}
+              icon={<Clock className="h-5 w-5" />}
+              variant="accent"
+            />
+            <StatsCard
+              title="Completed"
+              value={mockInterviews.filter(i => i.status === 'completed').length}
+              icon={<CheckCircle2 className="h-5 w-5" />}
+              variant="success"
+            />
+          </div>
+
+          {/* Full Interview List */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Your Scheduled Interviews</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {mockInterviews
+                  .filter(interview => interview.status === 'scheduled')
+                  .sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime())
+                  .map((interview) => (
+                    <div
+                      key={interview.id}
+                      className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                          <span className="text-primary font-semibold">
+                            {interview.candidateName.charAt(0)}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="font-medium text-foreground">{interview.candidateName}</p>
+                          <p className="text-sm text-muted-foreground">{interview.demandTitle}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Badge variant="outline">Round {interview.round}</Badge>
+                            <span className="text-sm text-muted-foreground">
+                              {format(interview.scheduledAt, 'dd MMM yyyy, hh:mm a')}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {interview.meetLink && (
+                          <Button size="sm" asChild>
+                            <a href={interview.meetLink} target="_blank" rel="noopener noreferrer">
+                              Join Meet
+                            </a>
+                          </Button>
+                        )}
+                        <Button variant="outline" size="sm" onClick={() => navigate('/interviews')}>
+                          Submit Feedback
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                {mockInterviews.filter(i => i.status === 'scheduled').length === 0 && (
+                  <p className="text-center text-muted-foreground py-8">
+                    No scheduled interviews at the moment.
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // Hiring Manager Dashboard - Specific stats without pipeline/upcoming interviews
+  if (user?.role === 'hiring_manager') {
+    return (
+      <DashboardLayout title="Dashboard">
+        <div className="space-y-6 animate-fade-in">
+          {/* Welcome Section */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h2 className="text-2xl font-bold text-foreground">
+                Good morning, {user?.name?.split(' ')[0]}! 👋
+              </h2>
+              <p className="text-muted-foreground mt-1">{getRoleGreeting()}</p>
+            </div>
+            <Button
+              className="bg-accent hover:bg-accent/90 text-accent-foreground"
+              onClick={() => setIsCreateOpen(true)}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Create Demand
+            </Button>
+          </div>
+
+          {/* Stats for Hiring Manager */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <StatsCard
+              title="Open Positions"
+              value={stats.openPositions}
+              icon={<Briefcase className="h-5 w-5" />}
+              trend={{ value: 12, isPositive: true }}
+              variant="primary"
+            />
+            <StatsCard
+              title="Applied"
+              value={totalApplied}
+              icon={<Users className="h-5 w-5" />}
+              trend={{ value: 8, isPositive: true }}
+              variant="accent"
+            />
+            <StatsCard
+              title="Interviews"
+              value={totalInterviews}
+              icon={<Calendar className="h-5 w-5" />}
+              variant="warning"
+            />
+            <StatsCard
+              title="Offered"
+              value={totalOffered}
+              icon={<FileCheck className="h-5 w-5" />}
+              trend={{ value: 5, isPositive: true }}
+              variant="success"
+            />
+            <StatsCard
+              title="Rejected"
+              value={totalRejected}
+              icon={<UserX className="h-5 w-5" />}
+              variant="default"
+            />
+          </div>
+
+          {/* Active Demands - Full Width */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-foreground">Your Active Demands</h3>
+              <Button variant="ghost" size="sm" className="text-primary" onClick={() => navigate('/demands')}>
+                View All
+              </Button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {demands.map((demand) => (
+                <DemandCard
+                  key={demand.id}
+                  demand={demand}
+                  onViewDetails={() => handleViewDetails(demand)}
+                  onEdit={() => handleEditDemand(demand)}
+                  onClose={() => handleCloseDemand(demand)}
+                  onReopen={() => reopenDemand(demand.id)}
+                  onViewApplied={() => navigate(`/candidates?demandId=${demand.id}&status=applied`)}
+                  onViewInterviewed={() => navigate(`/candidates?demandId=${demand.id}&status=interview_scheduled,interview_completed`)}
+                  onViewOffers={() => navigate(`/candidates?demandId=${demand.id}&status=offer_rolled,offer_accepted`)}
+                  showActions={true}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Demand Summary Table with Rejected column */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Demand Summary</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left py-3 px-4 font-medium text-muted-foreground">Demand</th>
+                      <th className="text-center py-3 px-4 font-medium text-muted-foreground">Openings</th>
+                      <th className="text-center py-3 px-4 font-medium text-muted-foreground">Applied</th>
+                      <th className="text-center py-3 px-4 font-medium text-muted-foreground">Interviewed</th>
+                      <th className="text-center py-3 px-4 font-medium text-muted-foreground">Offers</th>
+                      <th className="text-center py-3 px-4 font-medium text-muted-foreground">Rejected</th>
+                      <th className="text-center py-3 px-4 font-medium text-muted-foreground">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {demands.map((demand) => (
+                      <tr key={demand.id} className="border-b hover:bg-muted/50">
+                        <td className="py-3 px-4">
+                          <p className="font-medium">{demand.title}</p>
+                          <p className="text-sm text-muted-foreground">{demand.location}</p>
+                        </td>
+                        <td className="text-center py-3 px-4">{demand.openings}</td>
+                        <td className="text-center py-3 px-4">{demand.applicants}</td>
+                        <td className="text-center py-3 px-4">{demand.interviewed}</td>
+                        <td className="text-center py-3 px-4">{demand.offers}</td>
+                        <td className="text-center py-3 px-4 text-destructive font-medium">
+                          {getRejectedForDemand(demand.id)}
+                        </td>
+                        <td className="text-center py-3 px-4">
+                          <Badge variant={demand.status === 'open' ? 'default' : 'secondary'}>
+                            {demand.status}
+                          </Badge>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Dialogs */}
+          <CreateDemandDialog
+            open={isCreateOpen}
+            onOpenChange={setIsCreateOpen}
+            onCreate={handleCreateDemand}
+          />
+
+          <DemandDetailsDialog
+            demand={selectedDemand}
+            open={isDetailsOpen}
+            onOpenChange={setIsDetailsOpen}
+            mode="view"
+            onSave={handleSaveDemand}
+            onClose={(id) => {
+              const demand = demands.find(d => d.id === id);
+              if (demand) handleCloseDemand(demand);
+            }}
+          />
+
+          <DemandDetailsDialog
+            demand={selectedDemand}
+            open={isEditOpen}
+            onOpenChange={setIsEditOpen}
+            mode="edit"
+            onSave={handleSaveDemand}
+          />
+
+          <ConfirmDialog
+            open={isCloseConfirmOpen}
+            onOpenChange={setIsCloseConfirmOpen}
+            title="Close Position"
+            description={`Are you sure you want to close the position "${selectedDemand?.title}"? This will mark the demand as closed.`}
+            confirmLabel="Close Position"
+            variant="destructive"
+            onConfirm={confirmCloseDemand}
+          />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // Default Dashboard for Super Admin and Admin
+  return (
+    <DashboardLayout title="Dashboard">
+      <div className="space-y-6 animate-fade-in">
+        {/* Welcome Section */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-bold text-foreground">
+              Good morning, {user?.name?.split(' ')[0]}! 👋
+            </h2>
+            <p className="text-muted-foreground mt-1">{getRoleGreeting()}</p>
+          </div>
+          {(user?.role === 'super_admin') && (
+            <Button
+              className="bg-accent hover:bg-accent/90 text-accent-foreground"
+              onClick={() => setIsCreateOpen(true)}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Create Demand
+            </Button>
+          )}
+        </div>
+
+        {/* Stats Grid */}
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatsCard
+            title="Candidates Applied"
+            value={totalApplied}
+            icon={<Users className="h-5 w-5" />}
+            variant="primary"
+          />
+          <StatsCard
+            title="Candidates Selected"
+            value={mockCandidates.filter(c => c.status === 'selected').length}
+            icon={<CheckCircle2 className="h-5 w-5" />}
+            variant="success"
+          />
+          <StatsCard
+            title="Candidates Interviewed"
+            value={totalInterviewed}
+            icon={<Calendar className="h-5 w-5" />}
+            variant="accent"
+          />
+          <StatsCard
+            title="Candidates Rejected"
+            value={totalRejected}
+            icon={<UserX className="h-5 w-5" />}
+            variant="destructive"
+          />
+          <StatsCard
+            title="Candidates Offered"
+            value={mockCandidates.filter(c => c.status === 'offer_rolled').length}
+            icon={<FileCheck className="h-5 w-5" />}
+            variant="warning"
+          />
+          <StatsCard
+            title="Candidates Onboarded"
+            value={mockCandidates.filter(c => c.status === 'onboarded').length}
+            icon={<UserCheck className="h-5 w-5" />}
+            variant="default"
+          />
+          <StatsCard
+            title="Bench Strength"
+            value={mockBenchResources.length}
+            icon={<Users2 className="h-5 w-5" />}
+            variant="accent"
+          />
+          <StatsCard
+            title="Allocated to Projects"
+            value={mockBenchResources.filter(r => r.status === 'allocated').length}
+            icon={<FolderKanban className="h-5 w-5" />}
+            variant="warning"
+          />
+          {/* Rejection Percentage Cards for Admin/Super Admin */}
+          <StatsCard
+            title="Screening Rejection %"
+            value={`${screeningRejectionPercentage}%`}
+            icon={<XCircle className="h-5 w-5" />}
+            variant="destructive"
+            onClick={() => navigate('/candidates?status=rejected&currentRound=undefined')}
+          />
+          <StatsCard
+            title="Round 1 Rejection %"
+            value={`${round1RejectionPercentage}%`}
+            icon={<XCircle className="h-5 w-5" />}
+            variant="destructive"
+            onClick={() => navigate('/candidates?status=rejected&currentRound=1')}
+          />
+          <StatsCard
+            title="Round 2 Rejection %"
+            value={`${round2RejectionPercentage}%`}
+            icon={<XCircle className="h-5 w-5" />}
+            variant="destructive"
+            onClick={() => navigate('/candidates?status=rejected&currentRound=2')}
+          />
+        </div>
+
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column - Demands */}
+          <div className="lg:col-span-2 space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-foreground">Active Demands</h3>
+              <Button variant="ghost" size="sm" className="text-primary" onClick={() => navigate('/demands')}>
+                View All
+              </Button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {demands.map((demand) => (
+                <DemandCard
+                  key={demand.id}
+                  demand={demand}
+                  onViewDetails={() => handleViewDetails(demand)}
+                  onEdit={() => handleEditDemand(demand)}
+                  onClose={() => handleCloseDemand(demand)}
+                  onReopen={() => reopenDemand(demand.id)}
+                  onViewApplied={() => navigate(`/candidates?demandId=${demand.id}&status=applied`)}
+                  onViewInterviewed={() => navigate(`/candidates?demandId=${demand.id}&status=interview_scheduled,interview_completed`)}
+                  onViewOffers={() => navigate(`/candidates?demandId=${demand.id}&status=offer_rolled,offer_accepted`)}
+                  showActions={true}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Right Column - Pipeline & Interviews */}
+          <div className="space-y-6">
+            <CandidatePipeline />
+            <RecentInterviews />
+          </div>
+        </div>
+
+        {/* Dialogs */}
+        <CreateDemandDialog
+          open={isCreateOpen}
+          onOpenChange={setIsCreateOpen}
+          onCreate={handleCreateDemand}
+        />
+
+        <DemandDetailsDialog
+          demand={selectedDemand}
+          open={isDetailsOpen}
+          onOpenChange={setIsDetailsOpen}
+          mode="view"
+          onSave={handleSaveDemand}
+          onClose={(id) => {
+            const demand = demands.find(d => d.id === id);
+            if (demand) handleCloseDemand(demand);
+          }}
+        />
+
+        <DemandDetailsDialog
+          demand={selectedDemand}
+          open={isEditOpen}
+          onOpenChange={setIsEditOpen}
+          mode="edit"
+          onSave={handleSaveDemand}
+        />
+
+        <ConfirmDialog
+          open={isCloseConfirmOpen}
+          onOpenChange={setIsCloseConfirmOpen}
+          title="Close Position"
+          description={`Are you sure you want to close the position "${selectedDemand?.title}"? This will mark the demand as closed.`}
+          confirmLabel="Close Position"
+          variant="destructive"
+          onConfirm={confirmCloseDemand}
+        />
+      </div>
+    </DashboardLayout>
+  );
+};
+
+export default Dashboard;

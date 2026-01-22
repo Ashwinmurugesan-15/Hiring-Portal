@@ -1,0 +1,108 @@
+import { useAuth } from '@/context/AuthContext';
+import { Bell, Search, Menu, Shield, ChevronDown } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Badge } from '@/components/ui/badge';
+import { UserRole } from '@/types/recruitment';
+
+interface HeaderProps {
+  title: string;
+  onMenuClick?: () => void;
+}
+
+export const Header = ({ title, onMenuClick }: HeaderProps) => {
+  const { user, switchRole } = useAuth();
+
+  const roles: { value: UserRole; label: string; description?: string }[] = [
+    { value: 'super_admin', label: 'Super Admin', description: 'Full system access' },
+    { value: 'admin', label: 'Admin (HR)', description: 'Recruitment & Offers' },
+    { value: 'hiring_manager', label: 'Hiring Manager', description: 'Demands & Candidates' },
+    { value: 'interviewer', label: 'Interviewer', description: 'Conduct Interviews' },
+  ];
+
+  return (
+    <header className="h-16 bg-card border-b border-border px-4 lg:px-6 flex items-center justify-between shadow-sm">
+      <div className="flex items-center gap-4">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onMenuClick}
+          className="lg:hidden"
+        >
+          <Menu className="h-5 w-5" />
+        </Button>
+        <h1 className="text-xl font-semibold text-foreground">{title}</h1>
+      </div>
+
+      <div className="flex items-center gap-4">
+        {/* Search */}
+        <div className="hidden md:flex relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search candidates, demands..."
+            className="pl-10 w-64 bg-background"
+          />
+        </div>
+
+        {/* Role Switcher - Only for Super Admin */}
+        {(user?.role === 'super_admin' || user?.permissions?.isSuperAdmin || user?.originalRole === 'super_admin') && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 border-sidebar-border hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+              >
+                <Shield className="h-4 w-4" />
+                <span className="hidden md:inline">{roles.find(r => r.value === user?.role)?.label}</span>
+                <ChevronDown className="h-4 w-4 opacity-50" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              {roles.map(role => (
+                <DropdownMenuItem
+                  key={role.value}
+                  onClick={() => switchRole(role.value)}
+                  className="cursor-pointer"
+                >
+                  <div className="flex items-center gap-2">
+                    <Shield className="h-4 w-4" />
+                    <div>
+                      <div className="font-medium">{role.label}</div>
+                      <div className="text-xs text-muted-foreground">{role.description}</div>
+                    </div>
+                  </div>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+
+        {/* Notifications */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="relative">
+              <Bell className="h-5 w-5" />
+              <span className="absolute top-1 right-1 h-2 w-2 bg-destructive rounded-full" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-80 bg-popover">
+            <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <div className="p-4 text-center text-sm text-muted-foreground">
+              <p>New interview scheduled for tomorrow</p>
+            </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </header>
+  );
+};

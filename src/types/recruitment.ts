@@ -1,0 +1,201 @@
+export type UserRole = 'super_admin' | 'admin' | 'hiring_manager' | 'interviewer';
+
+export type CandidateStatus =
+  | 'applied'
+  | 'screening'
+  | 'interview_scheduled'
+  | 'interview_completed'
+  | 'selected'
+  | 'rejected'
+  | 'offer_rolled'
+  | 'offer_accepted'
+  | 'offer_rejected'
+  | 'onboarding'
+  | 'onboarded';
+
+
+export type InterviewRound = 1 | 2 | 3;
+
+export interface UserPermissions {
+  isSuperAdmin?: boolean; // Grant full super admin access
+  canManageUsers?: boolean; // Can this user assign permissions to others
+  features: {
+    dashboard: boolean;
+    demands: boolean;
+    demandRoles: boolean;
+    candidates: boolean;
+    interviews: boolean;
+    offers: boolean;
+    onboarding: boolean;
+    bench: boolean;
+    projects: boolean;
+  };
+}
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  originalRole?: UserRole; // Track the true role for masquerading
+  avatar?: string;
+  isActive: boolean;
+  permissions?: UserPermissions;
+}
+
+export interface Demand {
+  id: string;
+  title: string;
+  role: string;
+  experience: string;
+  location: string;
+  openings: number;
+  skills: string[];
+  status: 'open' | 'closed' | 'on_hold';
+  createdBy: string;
+  createdAt: Date;
+  applicants: number;
+  interviewed: number;
+  offers: number;
+  reopenedAt?: Date;
+}
+
+export interface Candidate {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  resumeUrl?: string;
+  demandId: string;
+  status: CandidateStatus;
+  skills: string[];
+  source: 'career_portal' | 'linkedin' | 'indeed' | 'naukri' | 'referral' | 'other';
+  experience: string;
+  currentCompany?: string;
+  location?: string;
+  noticePeriod?: string;
+  appliedAt: Date;
+  currentRound?: InterviewRound;
+  expectedCTC?: string;
+  offeredCTC?: string;
+  dateOfJoining?: Date;
+  linkedInProfile?: string;
+  currentRole?: string;
+  locationPreference?: string;
+  currentCTC?: string;
+  isServingNotice?: boolean;
+  isImmediateJoiner?: boolean;
+  hasOtherOffers?: boolean;
+  otherOfferCTC?: string;
+  certifications?: string[];
+  referredBy?: string;
+  comments?: string;
+  round1Recommendation?: string;
+  round2Recommendation?: string;
+}
+
+export interface Interview {
+  id: string;
+  candidateId: string;
+  candidateName: string;
+  demandId: string;
+  demandTitle: string;
+  round: InterviewRound;
+  scheduledAt: Date;
+  interviewerId: string;
+  interviewerName: string;
+  meetLink?: string;
+  status: 'scheduled' | 'completed' | 'cancelled';
+  feedback?: {
+    technicalRating: number;
+    communicationRating: number;
+    comments: string;
+    decision: 'move_forward' | 'reject';
+  };
+}
+
+export interface DashboardStats {
+  totalDemands: number;
+  openPositions: number;
+  totalCandidates: number;
+  interviewsScheduled: number;
+  offersRolled: number;
+  onboarded: number;
+}
+
+export type BenchStatus = 'available' | 'releasing_soon' | 'allocated';
+
+export interface BenchResource {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  role: string;
+  skills: string[];
+  experience: string;
+  availableFrom: Date;
+  status: BenchStatus;
+  location: string;
+  expectedCTC: string;
+  lastProject?: string;
+  avatar?: string;
+}
+
+// Projects & Allocations Types
+export type ProjectStatus = 'active' | 'on_hold' | 'completed' | 'cancelled';
+export type AllocationStatus = 'active' | 'ended' | 'upcoming';
+
+export interface Project {
+  id: string;
+  name: string;
+  clientId: string;
+  clientName: string;
+  description?: string;
+  status: ProjectStatus;
+  startDate: Date;
+  endDate?: Date;
+  teamSize: number;
+  allocatedResources: number;
+  techStack: string[];
+  projectManager: string;
+}
+
+export interface ResourceAllocation {
+  id: string;
+  resourceId: string;
+  resourceName: string;
+  resourceEmail: string;
+  projectId: string;
+  projectName: string;
+  clientName: string;
+  role: string;
+  skills: string[];
+  allocationPercentage: number;
+  startDate: Date;
+  endDate?: Date;
+  status: AllocationStatus;
+}
+
+export interface AllocationHistory {
+  id: string;
+  resourceId: string;
+  resourceName: string;
+  projectId: string;
+  projectName: string;
+  clientName: string;
+  role: string;
+  startDate: Date;
+  endDate: Date;
+  duration: string;
+}
+
+export interface Client {
+  id: string;
+  name: string;
+  industry: string;
+  contactPerson: string;
+  email: string;
+  phone: string;
+  projectCount: number;
+  activeProjects: number;
+}
