@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Demand } from '@/types/recruitment';
 import {
   Dialog,
@@ -39,16 +39,24 @@ const statusColors = {
   on_hold: 'bg-warning/10 text-warning border-warning/20',
 };
 
-export const DemandDetailsDialog = ({ 
-  demand, 
-  open, 
-  onOpenChange, 
+export const DemandDetailsDialog = ({
+  demand,
+  open,
+  onOpenChange,
   mode,
   onSave,
-  onClose 
+  onClose
 }: DemandDetailsDialogProps) => {
   const [isEditing, setIsEditing] = useState(mode === 'edit');
   const [editData, setEditData] = useState<Demand | null>(demand);
+
+  // Sync state with props when dialog opens or demand changes
+  useEffect(() => {
+    if (open) {
+      setIsEditing(mode === 'edit');
+      setEditData(demand);
+    }
+  }, [open, demand, mode]);
 
   if (!demand) return null;
 
@@ -122,7 +130,7 @@ export const DemandDetailsDialog = ({
                 <Label>Status</Label>
                 <Select
                   value={editData?.status || 'open'}
-                  onValueChange={(value: 'open' | 'closed' | 'on_hold') => 
+                  onValueChange={(value: 'open' | 'closed' | 'on_hold') =>
                     setEditData(prev => prev ? { ...prev, status: value } : null)
                   }
                 >
@@ -141,9 +149,9 @@ export const DemandDetailsDialog = ({
               <Label>Skills (comma separated)</Label>
               <Textarea
                 value={editData?.skills.join(', ') || ''}
-                onChange={(e) => setEditData(prev => prev ? { 
-                  ...prev, 
-                  skills: e.target.value.split(',').map(s => s.trim()).filter(Boolean) 
+                onChange={(e) => setEditData(prev => prev ? {
+                  ...prev,
+                  skills: e.target.value.split(',').map(s => s.trim()).filter(Boolean)
                 } : null)}
               />
             </div>

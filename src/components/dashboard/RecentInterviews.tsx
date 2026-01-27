@@ -1,15 +1,16 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { mockInterviews } from '@/data/mockData';
+import { useRecruitment } from '@/context/RecruitmentContext';
 import { Video, Clock, ArrowRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 
 export const RecentInterviews = () => {
   const navigate = useNavigate();
-  
-  const upcomingInterviews = mockInterviews
+  const { interviews } = useRecruitment();
+
+  const upcomingInterviews = interviews
     .filter((i) => i.status === 'scheduled')
     .sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime())
     .slice(0, 4);
@@ -52,9 +53,9 @@ export const RecentInterviews = () => {
               </div>
             </div>
             {interview.meetLink && (
-              <Button 
-                size="icon" 
-                variant="ghost" 
+              <Button
+                size="icon"
+                variant="ghost"
                 className="flex-shrink-0 text-accent hover:text-accent"
                 onClick={() => window.open(interview.meetLink, '_blank')}
               >

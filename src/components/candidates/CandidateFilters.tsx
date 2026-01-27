@@ -22,19 +22,21 @@ export interface FilterState {
     location: string;
     experience: string;
     noticePeriod: string;
+    feedbackFilter: string;
 }
 
 const statusOptions: { value: CandidateStatus | 'all'; label: string }[] = [
     { value: 'all', label: 'All Application Statuses' },
+    { value: 'applied', label: 'Received' },
     { value: 'screening', label: 'Proceed Further' },
     { value: 'interview_scheduled', label: 'On Hold' },
     { value: 'interview_completed', label: 'No Resp Call/Email' },
-    { value: 'offer_rejected', label: 'Did Not Join' },
-    { value: 'offer_rolled', label: 'Sent' },
-    { value: 'applied', label: 'Recieved' },
-    { value: 'offer_accepted', label: 'In Notice' },
     { value: 'selected', label: 'Accepted' },
     { value: 'rejected', label: 'Rejected' },
+    { value: 'offer_rolled', label: 'Sent' },
+    { value: 'offer_accepted', label: 'In Notice' },
+    { value: 'offer_rejected', label: 'Did Not Join' },
+    { value: 'onboarding', label: 'Onboarding' },
     { value: 'onboarded', label: 'Joined' },
 ];
 
@@ -83,6 +85,13 @@ const noticePeriodOptions = [
     "90 Days"
 ];
 
+const feedbackFilterOptions = [
+    { value: 'all', label: 'All Feedback Status' },
+    { value: 'has_screening', label: 'Initial Screening' },
+    { value: 'has_round1', label: 'Round 1 Feedback' },
+    { value: 'has_round2', label: 'Round 2 Feedback' },
+];
+
 export function CandidateFilters({ onFilterChange }: CandidateFiltersProps) {
     const [filters, setFilters] = useState<FilterState>({
         search: '',
@@ -91,6 +100,7 @@ export function CandidateFilters({ onFilterChange }: CandidateFiltersProps) {
         location: 'All Location',
         experience: 'Any Experience',
         noticePeriod: 'Any Notice Period',
+        feedbackFilter: 'all',
     });
 
     const updateFilter = (key: keyof FilterState, value: string) => {
@@ -107,6 +117,7 @@ export function CandidateFilters({ onFilterChange }: CandidateFiltersProps) {
             location: 'All Location',
             experience: 'Any Experience',
             noticePeriod: 'Any Notice Period',
+            feedbackFilter: 'all',
         };
         setFilters(defaultFilters);
         onFilterChange(defaultFilters);
@@ -118,7 +129,8 @@ export function CandidateFilters({ onFilterChange }: CandidateFiltersProps) {
         filters.position !== 'All Positions' ||
         filters.location !== 'All Location' ||
         filters.experience !== 'Any Experience' ||
-        filters.noticePeriod !== 'Any Notice Period';
+        filters.noticePeriod !== 'Any Notice Period' ||
+        filters.feedbackFilter !== 'all';
 
     return (
         <div className="bg-card p-4 rounded-lg border shadow-sm mb-2">
@@ -185,10 +197,24 @@ export function CandidateFilters({ onFilterChange }: CandidateFiltersProps) {
                 <Select value={filters.status} onValueChange={(v) => updateFilter('status', v)}>
                     <SelectTrigger className="w-[180px]">
                         <Filter className="w-4 h-4 mr-2" />
-                        <SelectValue placeholder="Status" />
+                        <SelectValue placeholder="Application Status" />
                     </SelectTrigger>
                     <SelectContent>
                         {statusOptions.map(option => (
+                            <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+
+                {/* Feedback Filter */}
+                <Select value={filters.feedbackFilter} onValueChange={(v) => updateFilter('feedbackFilter', v)}>
+                    <SelectTrigger className="w-[200px]">
+                        <SelectValue placeholder="Feedback Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {feedbackFilterOptions.map(option => (
                             <SelectItem key={option.value} value={option.value}>
                                 {option.label}
                             </SelectItem>

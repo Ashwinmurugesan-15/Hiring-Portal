@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { mockCandidates } from '@/data/mockData';
+import { useRecruitment } from '@/context/RecruitmentContext';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 
@@ -14,9 +14,10 @@ const pipelineStages = [
 
 export const CandidatePipeline = () => {
   const navigate = useNavigate();
-  
+  const { candidates } = useRecruitment();
+
   const getCandidateCount = (stage: string) => {
-    return mockCandidates.filter((c) => c.status === stage).length;
+    return candidates.filter((c) => c.status === stage).length;
   };
 
   const maxCount = Math.max(...pipelineStages.map((s) => getCandidateCount(s.key)));
@@ -37,8 +38,8 @@ export const CandidatePipeline = () => {
             const percentage = maxCount > 0 ? (count / maxCount) * 100 : 0;
 
             return (
-              <div 
-                key={stage.key} 
+              <div
+                key={stage.key}
                 className="space-y-2 cursor-pointer hover:text-primary transition-colors"
                 onClick={() => handleStageClick(stage.key)}
               >

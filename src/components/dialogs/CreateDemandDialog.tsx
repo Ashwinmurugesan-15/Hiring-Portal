@@ -13,6 +13,17 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { useUsers } from '@/context/UsersContext';
+import { useRecruitment } from '@/context/RecruitmentContext';
+
+const replacePlaceholders = (template: string, data: Record<string, string>) => {
+  let result = template;
+  Object.entries(data).forEach(([key, value]) => {
+    // Escape special characters for regex
+    const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    result = result.replace(new RegExp(`\\[${escapedKey}\\]`, 'g'), value);
+  });
+  return result;
+};
 
 interface CreateDemandDialogProps {
   open: boolean;
@@ -22,6 +33,7 @@ interface CreateDemandDialogProps {
 
 export const CreateDemandDialog = ({ open, onOpenChange, onCreate }: CreateDemandDialogProps) => {
   const { users } = useUsers();
+  const { emailTemplates } = useRecruitment();
   const [formData, setFormData] = useState({
     title: '',
     role: '',
@@ -51,63 +63,52 @@ export const CreateDemandDialog = ({ open, onOpenChange, onCreate }: CreateDeman
     };
 
     // Send email notifications to admin and super admin
-    const adminUsers = users.filter(user => 
+    const adminUsers = users.filter(user =>
       user.role === 'admin' || user.role === 'super_admin'
     );
-    
+
     adminUsers.forEach(user => {
-      // In a real app, this would be an actual email send
-      const emailTemplate = `
+      const template = emailTemplates.find(t => t.id === 'demand_created');
+      let emailSubject = '📢 New Job Demand Created';
+      let emailBody = '';
+
+      if (template) {
+        const pData = {
+          'User Name': user.name,
+          'Title': newDemand.title,
+          'Role': newDemand.role,
+          'Experience': newDemand.experience,
+          'Location': newDemand.location,
+          'Openings': newDemand.openings.toString(),
+          'Status': newDemand.status.toUpperCase(),
+          'Created By': newDemand.createdBy,
+          'Created At': new Date().toLocaleString(),
+          'Skills': newDemand.skills.join(', '),
+          'HireFlow Dashboard Link': 'https://hireflow.app/demands',
+          'Admin Portal Link': 'https://hireflow.app/admin',
+        };
+        emailSubject = replacePlaceholders(template.subject, pData);
+        emailBody = replacePlaceholders(template.body, pData);
+      } else {
+        // Fallback
+        emailBody = `
 📢 New Job Demand Created
 
 Dear ${user.name},
 
-A new job demand has been created in the HireFlow system. Here are the details:
+A new job demand has been created...
+        `;
+      }
 
-📋 Demand Information
-===================
-Title: ${newDemand.title}
-Role: ${newDemand.role}
-Experience: ${newDemand.experience}
-Location: ${newDemand.location}
-Openings: ${newDemand.openings}
-Status: ${newDemand.status.toUpperCase()}
-Created By: ${newDemand.createdBy}
-Created At: ${new Date().toLocaleString()}
-
-🔧 Required Skills
-=================
-${newDemand.skills.join(', ')}
-
-📊 Next Steps
-============
-1. Review the demand details in HireFlow
-2. Approve if necessary
-3. Monitor candidate applications
-4. Coordinate with hiring managers
-
-🔗 Quick Links
-=============
-View Demand: [HireFlow Dashboard Link]
-Admin Panel: [Admin Portal Link]
-
-📞 Support
-=========
-For any questions, please contact the HR team or system administrator.
-
-Best regards,
-The HireFlow Team
-      `;
-      
       console.log(`Email sent to ${user.email}:`);
-      console.log(emailTemplate);
-      // You could implement actual email sending here using a service like SendGrid or Nodemailer
+      console.log(`Subject: ${emailSubject}`);
+      console.log(emailBody);
     });
-    
+
     // Post to company career page
     console.log(`Posted to career page: ${newDemand.title}`);
     // In a real app, this would integrate with your career page CMS or API
-    
+
     onCreate?.(newDemand);
     toast.success('Demand created successfully!');
     toast.info(`Job posted on career page: ${newDemand.title}`);

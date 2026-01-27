@@ -72,7 +72,7 @@ export const mockCandidates: Candidate[] = [
     phone: '+91 98765 43210',
     demandId: '1',
     status: 'interview_scheduled',
-    appliedAt: new Date('2026-01-21'), // Applied after reopening
+    appliedAt: new Date('2026-01-21'),
     currentRound: 2,
     expectedCTC: '25 LPA',
     skills: ['AWS', 'Kubernetes', 'Python'],
@@ -90,6 +90,8 @@ export const mockCandidates: Candidate[] = [
     hasOtherOffers: false,
     certifications: ['AWS Certified Solutions Architect', 'CKA'],
     referredBy: 'John Doe',
+    interviewStatus: 'tech_inter_sched',
+    resumeUrl: 'https://hireflow.app/storage/resumes/priya_sharma.pdf',
   },
   {
     id: '2',
@@ -115,6 +117,8 @@ export const mockCandidates: Candidate[] = [
     hasOtherOffers: true,
     otherOfferCTC: '16 LPA',
     comments: 'Looking for a challenging role in fintech.',
+    interviewStatus: 'profile_screening_comp',
+    resumeUrl: 'https://hireflow.app/storage/resumes/rahul_verma.pdf',
   },
   {
     id: '3',
@@ -143,6 +147,7 @@ export const mockCandidates: Candidate[] = [
     hasOtherOffers: true,
     otherOfferCTC: '28 LPA',
     certifications: ['Docker Certified Associate'],
+    interviewStatus: 'offer',
   },
   {
     id: '4',
@@ -151,7 +156,7 @@ export const mockCandidates: Candidate[] = [
     phone: '+91 65432 10987',
     demandId: '1',
     status: 'applied',
-    appliedAt: new Date('2026-01-15'), // Applied before reopening
+    appliedAt: new Date('2026-01-15'),
     expectedCTC: '35 LPA',
     skills: ['Python', 'Go', 'Kubernetes'],
     source: 'career_portal',
@@ -165,6 +170,7 @@ export const mockCandidates: Candidate[] = [
     currentCTC: '28 LPA',
     isServingNotice: false,
     isImmediateJoiner: false,
+    interviewStatus: 'applied',
   },
   {
     id: '5',
@@ -187,6 +193,7 @@ export const mockCandidates: Candidate[] = [
     currentCTC: '8 LPA',
     isServingNotice: false,
     isImmediateJoiner: true,
+    interviewStatus: 'voice_screening_comp',
   },
   {
     id: '6',
@@ -212,6 +219,7 @@ export const mockCandidates: Candidate[] = [
     currentCTC: '15 LPA',
     isServingNotice: true,
     isImmediateJoiner: false,
+    interviewStatus: 'all_completed',
   },
 ];
 

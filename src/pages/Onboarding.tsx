@@ -23,8 +23,8 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
-import { 
-  Search, 
+import {
+  Search,
   UserCheck,
   Calendar,
   Building2,
@@ -59,6 +59,8 @@ interface OnboardingCandidate {
   status: 'pending' | 'in_progress' | 'completed';
   tasks: OnboardingTask[];
   manager: string;
+  experience?: string;
+  currentCompany?: string;
 }
 
 const defaultTasks: Omit<OnboardingTask, 'completed'>[] = [
@@ -80,6 +82,8 @@ const initialCandidates: OnboardingCandidate[] = [
     joiningDate: new Date('2026-02-15'),
     status: 'pending',
     manager: 'Mike Manager',
+    experience: '8 years',
+    currentCompany: 'Cloud Systems',
     tasks: defaultTasks.map(t => ({ ...t, completed: false })),
   },
   {
@@ -91,6 +95,8 @@ const initialCandidates: OnboardingCandidate[] = [
     joiningDate: new Date('2026-01-20'),
     status: 'in_progress',
     manager: 'Mike Manager',
+    experience: '5 years',
+    currentCompany: 'Tech Solutions',
     tasks: defaultTasks.map((t, idx) => ({ ...t, completed: idx < 3 })),
   },
   {
@@ -102,6 +108,8 @@ const initialCandidates: OnboardingCandidate[] = [
     joiningDate: new Date('2026-02-01'),
     status: 'pending',
     manager: 'Mike Manager',
+    experience: '10 years',
+    currentCompany: 'InfraCore Inc',
     tasks: defaultTasks.map(t => ({ ...t, completed: false })),
   },
 ];
@@ -118,10 +126,12 @@ const Onboarding = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedCandidate, setSelectedCandidate] = useState<OnboardingCandidate | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editCandidate, setEditCandidate] = useState<OnboardingCandidate | null>(null);
 
   const filteredCandidates = candidates.filter(candidate => {
     const matchesSearch = candidate.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         candidate.position.toLowerCase().includes(searchQuery.toLowerCase());
+      candidate.position.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || candidate.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -141,11 +151,11 @@ const Onboarding = () => {
   const updateTaskStatus = (candidateId: string, taskId: string, completed: boolean) => {
     setCandidates(candidates.map(candidate => {
       if (candidate.id !== candidateId) return candidate;
-      
+
       const updatedTasks = candidate.tasks.map(task =>
         task.id === taskId ? { ...task, completed } : task
       );
-      
+
       const completedCount = updatedTasks.filter(t => t.completed).length;
       let status: OnboardingCandidate['status'] = 'pending';
       if (completedCount === updatedTasks.length) {
@@ -153,7 +163,7 @@ const Onboarding = () => {
       } else if (completedCount > 0) {
         status = 'in_progress';
       }
-      
+
       return { ...candidate, tasks: updatedTasks, status };
     }));
 
@@ -173,13 +183,21 @@ const Onboarding = () => {
   };
 
   const handleCompleteOnboarding = (candidateId: string) => {
-    setCandidates(candidates.map(c => 
-      c.id === candidateId 
+    setCandidates(candidates.map(c =>
+      c.id === candidateId
         ? { ...c, status: 'completed' as const, tasks: c.tasks.map(t => ({ ...t, completed: true })) }
         : c
     ));
     setIsDetailsOpen(false);
     toast.success('Onboarding completed successfully!');
+  };
+
+  const handleUpdateCandidate = () => {
+    if (!editCandidate) return;
+    setCandidates(candidates.map(c => c.id === editCandidate.id ? editCandidate : c));
+    setSelectedCandidate(editCandidate);
+    setIsEditOpen(false);
+    toast.success('Candidate details updated successfully!');
   };
 
   return (
@@ -251,8 +269,8 @@ const Onboarding = () => {
           {filteredCandidates.map((candidate) => {
             const progress = getProgress(candidate.tasks);
             return (
-              <Card 
-                key={candidate.id} 
+              <Card
+                key={candidate.id}
                 className="cursor-pointer hover:shadow-md transition-shadow"
                 onClick={() => {
                   setSelectedCandidate(candidate);
@@ -317,10 +335,27 @@ const Onboarding = () => {
         <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
           <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Onboarding Details</DialogTitle>
-              <DialogDescription>
-                Manage onboarding tasks for {selectedCandidate?.name}
-              </DialogDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <DialogTitle>Onboarding Details</DialogTitle>
+                  <DialogDescription>
+                    Manage onboarding tasks for {selectedCandidate?.name}
+                  </DialogDescription>
+                </div>
+                {selectedCandidate && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-primary hover:text-primary hover:bg-primary/10"
+                    onClick={() => {
+                      setEditCandidate(selectedCandidate);
+                      setIsEditOpen(true);
+                    }}
+                  >
+                    Edit Details
+                  </Button>
+                )}
+              </div>
             </DialogHeader>
             {selectedCandidate && (
               <div className="space-y-6">
@@ -342,6 +377,14 @@ const Onboarding = () => {
                     <Label className="text-muted-foreground">Reporting Manager</Label>
                     <p className="font-medium">{selectedCandidate.manager}</p>
                   </div>
+                  <div>
+                    <Label className="text-muted-foreground">Experience</Label>
+                    <p className="font-medium">{selectedCandidate.experience || '-'}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Previous Organization</Label>
+                    <p className="font-medium">{selectedCandidate.currentCompany || '-'}</p>
+                  </div>
                 </div>
 
                 {/* Progress */}
@@ -359,13 +402,13 @@ const Onboarding = () => {
                   {selectedCandidate.tasks.map((task) => {
                     const TaskIcon = task.icon;
                     return (
-                      <div 
+                      <div
                         key={task.id}
                         className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
                       >
                         <Checkbox
                           checked={task.completed}
-                          onCheckedChange={(checked) => 
+                          onCheckedChange={(checked) =>
                             updateTaskStatus(selectedCandidate.id, task.id, checked as boolean)
                           }
                         />
@@ -392,7 +435,7 @@ const Onboarding = () => {
                 Close
               </Button>
               {selectedCandidate && selectedCandidate.status !== 'completed' && (
-                <Button 
+                <Button
                   onClick={() => handleCompleteOnboarding(selectedCandidate.id)}
                   className="bg-success hover:bg-success/90"
                 >
@@ -400,6 +443,79 @@ const Onboarding = () => {
                   Complete Onboarding
                 </Button>
               )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Dialog */}
+        <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Edit Onboarding Details</DialogTitle>
+              <DialogDescription>
+                Update candidate information for {editCandidate?.name}
+              </DialogDescription>
+            </DialogHeader>
+            {editCandidate && (
+              <div className="space-y-4 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Position</Label>
+                    <Input
+                      value={editCandidate.position}
+                      onChange={(e) => setEditCandidate({ ...editCandidate, position: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Department</Label>
+                    <Input
+                      value={editCandidate.department}
+                      onChange={(e) => setEditCandidate({ ...editCandidate, department: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Joining Date</Label>
+                    <Input
+                      type="date"
+                      value={format(editCandidate.joiningDate, 'yyyy-MM-dd')}
+                      onChange={(e) => setEditCandidate({ ...editCandidate, joiningDate: new Date(e.target.value) })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Reporting Manager</Label>
+                    <Input
+                      value={editCandidate.manager}
+                      onChange={(e) => setEditCandidate({ ...editCandidate, manager: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Experience</Label>
+                    <Input
+                      value={editCandidate.experience || ''}
+                      onChange={(e) => setEditCandidate({ ...editCandidate, experience: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Previous Organization</Label>
+                    <Input
+                      value={editCandidate.currentCompany || ''}
+                      onChange={(e) => setEditCandidate({ ...editCandidate, currentCompany: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsEditOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleUpdateCandidate}>
+                Save Changes
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

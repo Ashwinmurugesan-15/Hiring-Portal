@@ -31,8 +31,18 @@ import { Interview } from '@/types/recruitment';
 import { useRecruitment } from '@/context/RecruitmentContext';
 import { InterviewCalendar } from '@/components/interviews/InterviewCalendar';
 
+const replacePlaceholders = (template: string, data: Record<string, string>) => {
+  let result = template;
+  Object.entries(data).forEach(([key, value]) => {
+    // Escape special characters for regex
+    const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    result = result.replace(new RegExp(`\\[${escapedKey}\\]`, 'g'), value);
+  });
+  return result;
+};
+
 const Interviews = () => {
-  const { updateCandidateFeedback, interviews, updateInterview } = useRecruitment();
+  const { updateCandidateFeedback, updateCandidateStatus, interviews, updateInterview, emailTemplates } = useRecruitment();
   const [selectedInterview, setSelectedInterview] = useState<Interview | null>(null);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [isEmailOpen, setIsEmailOpen] = useState(false);
@@ -156,8 +166,14 @@ const Interviews = () => {
     // Update candidate's feedback in the recruitment context
     if (isRound1) {
       updateCandidateFeedback(selectedInterview.candidateId, 1, round1Feedback.recommendation);
+      if (round1Feedback.recommendation === 'reject') {
+        updateCandidateStatus(selectedInterview.candidateId, 'rejected');
+      }
     } else {
       updateCandidateFeedback(selectedInterview.candidateId, 2, round2Feedback.recommendation);
+      if (round2Feedback.recommendation === 'reject') {
+        updateCandidateStatus(selectedInterview.candidateId, 'rejected');
+      }
     }
 
     const decisionText = isRound1
@@ -171,10 +187,27 @@ const Interviews = () => {
 
   const handleOpenEmail = (interview: Interview) => {
     setSelectedInterview(interview);
-    setEmailContent({
-      subject: `Interview Reminder: ${interview.demandTitle} - Round ${interview.round}`,
-      body: `Dear ${interview.candidateName},\n\nThis is a reminder for your upcoming interview scheduled on ${format(interview.scheduledAt, 'MMMM d, yyyy')} at ${format(interview.scheduledAt, 'h:mm a')}.\n\nPosition: ${interview.demandTitle}\nRound: ${interview.round}\n${interview.meetLink ? `Meeting Link: ${interview.meetLink}` : ''}\n\nPlease ensure you are available 5 minutes before the scheduled time.\n\nBest regards,\nHR Team`,
-    });
+
+    const template = emailTemplates.find(t => t.id === 'interview_reminder');
+    let subject = `Interview Reminder: ${interview.demandTitle} - Round ${interview.round}`;
+    let body = '';
+
+    if (template) {
+      const pData = {
+        'Candidate Name': interview.candidateName,
+        'Position': interview.demandTitle || '',
+        'Round': interview.round?.toString() || '',
+        'Date': format(interview.scheduledAt, 'MMMM d, yyyy'),
+        'Time': format(interview.scheduledAt, 'h:mm a'),
+        'Link': interview.meetLink ? `Meeting Link: ${interview.meetLink}` : '',
+      };
+      subject = replacePlaceholders(template.subject, pData);
+      body = replacePlaceholders(template.body, pData);
+    } else {
+      body = `Dear ${interview.candidateName},\n\nThis is a reminder for your upcoming interview scheduled on ${format(interview.scheduledAt, 'MMMM d, yyyy')} at ${format(interview.scheduledAt, 'h:mm a')}.\n\nPosition: ${interview.demandTitle}\nRound: ${interview.round}\n${interview.meetLink ? `Meeting Link: ${interview.meetLink}` : ''}\n\nPlease ensure you are available 5 minutes before the scheduled time.\n\nBest regards,\nHR Team`;
+    }
+
+    setEmailContent({ subject, body });
     setIsEmailOpen(true);
   };
 
@@ -263,43 +296,14 @@ const Interviews = () => {
 
         {/* Calendar Section - Conditionally Visible */}
         {isCalendarVisible && (
-          <Card className="shadow-card">
-            <CardContent className="p-6">
-              <div className="space-y-4">
-                {/* Google Calendar Header */}
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-semibold">Google Calendar</h3>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => window.open('https://calendar.google.com/calendar', '_blank')}
-                  >
-                    Open Full Calendar
-                  </Button>
-                </div>
-
-                {/* Embedded Google Calendar */}
-                <div className="border rounded-lg overflow-hidden">
-                  <iframe
-                    src="https://calendar.google.com/calendar/embed?height=500&wkst=1&bgcolor=%23ffffff&ctz=Asia%2FKolkata&showTitle=0&showNav=1&showPrint=0&showTabs=1&showCalendars=0&showTz=0"
-                    style={{ border: 0, width: '100%', height: '500px' }}
-                    loading="lazy"
-                    title="Google Calendar"
-                  ></iframe>
-                </div>
-
-                {/* Instructions */}
-                <div className="text-sm text-muted-foreground">
-                  <p className="font-semibold mb-1">How to use:</p>
-                  <ul className="list-disc pl-5 space-y-1">
-                    <li>Use the tabs at the top of the calendar to switch between Day, Week, and Month views</li>
-                    <li>Use the navigation arrows to move between dates</li>
-                    <li>Click "Open Full Calendar" for additional options</li>
-                  </ul>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="animate-in fade-in slide-in-from-top-4 duration-300">
+            <InterviewCalendar
+              interviews={scheduledInterviews}
+              selectedDate={selectedDate}
+              onDateSelect={setSelectedDate}
+              onAddToGoogleCalendar={handleAddToGoogleCalendar}
+            />
+          </div>
         )}
 
         {/* Interview Cards */}

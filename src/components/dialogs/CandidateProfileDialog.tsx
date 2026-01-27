@@ -1,23 +1,35 @@
 import { Candidate } from '@/types/recruitment';
 import { mockDemands } from '@/data/mockData';
+import { Mail, Phone, Briefcase, Calendar, DollarSign, MapPin, FileText, ArrowRight, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/common/StatusBadge';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
-import { StatusBadge } from '@/components/common/StatusBadge';
-import { Mail, Phone, Briefcase, Calendar, DollarSign, MapPin } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface CandidateProfileDialogProps {
   candidate: Candidate | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onViewResume?: (candidate: Candidate) => void;
+  onMoveForward?: (candidate: Candidate) => void;
+  onReject?: (candidate: Candidate) => void;
 }
 
-export const CandidateProfileDialog = ({ candidate, open, onOpenChange }: CandidateProfileDialogProps) => {
+export const CandidateProfileDialog = ({
+  candidate,
+  open,
+  onOpenChange,
+  onViewResume,
+  onMoveForward,
+  onReject
+}: CandidateProfileDialogProps) => {
   if (!candidate) return null;
 
   const demand = mockDemands.find(d => d.id === candidate.demandId);
@@ -38,7 +50,20 @@ export const CandidateProfileDialog = ({ candidate, open, onOpenChange }: Candid
             </div>
             <div>
               <h3 className="text-xl font-semibold">{candidate.name}</h3>
-              <StatusBadge status={candidate.status} />
+              <div className="flex items-center gap-2 mt-1">
+                <StatusBadge status={candidate.status} />
+                {onViewResume && (
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="h-auto p-0 text-primary font-normal"
+                    onClick={() => onViewResume(candidate)}
+                  >
+                    <FileText className="h-3 w-3 mr-1" />
+                    View Resume
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -105,6 +130,31 @@ export const CandidateProfileDialog = ({ candidate, open, onOpenChange }: Candid
             </div>
           )}
         </div>
+        <DialogFooter className="border-t pt-4 flex sm:justify-between items-center gap-2">
+          <div className="flex gap-2 w-full sm:w-auto">
+            {onReject && (
+              <Button
+                variant="outline"
+                className="text-destructive hover:bg-destructive/10 hover:text-destructive flex-1 sm:flex-none"
+                onClick={() => onReject(candidate)}
+              >
+                <X className="h-4 w-4 mr-2" />
+                Reject
+              </Button>
+            )}
+          </div>
+          <div className="flex gap-2 w-full sm:w-auto">
+            {onMoveForward && (
+              <Button
+                className="bg-primary hover:bg-primary/90 flex-1 sm:flex-none"
+                onClick={() => onMoveForward(candidate)}
+              >
+                Move Forward
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            )}
+          </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

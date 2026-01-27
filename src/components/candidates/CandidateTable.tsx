@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Candidate } from '@/types/recruitment';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -24,7 +24,16 @@ import {
     ChevronDown,
     ArrowUpDown,
     X,
+    Edit3,
+    Check,
 } from 'lucide-react';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
@@ -39,30 +48,58 @@ interface Column {
 }
 
 const defaultColumns: Column[] = [
-    { key: 'name', label: 'Candidate', visible: true, sortable: true },
+    { key: 'name', label: 'Full Name', visible: true, sortable: true },
+    { key: 'email', label: 'Email ID', visible: true },
+    { key: 'phone', label: 'Contact Number', visible: true },
+    { key: 'linkedInProfile', label: 'LinkedIn Profile', visible: true },
+    { key: 'resumeUrl', label: 'Resume / CV', visible: true },
+    { key: 'interestPosition', label: 'Interested Position', visible: true },
     { key: 'currentRole', label: 'Current Role', visible: true, sortable: true },
-    { key: 'experience', label: 'Exp', visible: true, sortable: true },
-    { key: 'status', label: 'Status', visible: true },
-    { key: 'skills', label: 'Skills', visible: false },
-    { key: 'source', label: 'Source', visible: false },
-    { key: 'appliedAt', label: 'Applied Date', visible: false, sortable: true },
-    { key: 'currentCompany', label: 'Current Org', visible: true },
-    { key: 'location', label: 'Location', visible: true },
-    { key: 'locationPreference', label: 'Loc. Pref', visible: false },
-    { key: 'currentCTC', label: 'Current CTC', visible: true },
-    { key: 'expectedCTC', label: 'Exp. CTC', visible: true },
-    { key: 'noticePeriod', label: 'Notice', visible: true },
-    { key: 'isServingNotice', label: 'Serving Notice', visible: false },
-    { key: 'isImmediateJoiner', label: 'Imm. Joiner', visible: false },
-    { key: 'linkedInProfile', label: 'LinkedIn', visible: false },
-    { key: 'hasOtherOffers', label: 'Has Offers', visible: false },
-    { key: 'otherOfferCTC', label: 'Offer CTC', visible: false },
-    { key: 'certifications', label: 'Certifications', visible: false },
-    { key: 'referredBy', label: 'Referred By', visible: false },
+    { key: 'currentCompany', label: 'Current Organization', visible: true },
+    { key: 'experience', label: 'Total Years of Experience', visible: true, sortable: true },
+    { key: 'location', label: 'Current Location', visible: true },
+    { key: 'locationPreference', label: 'Location Preference', visible: true },
+    { key: 'currentCTC', label: 'Current CTC per Annum', visible: true },
+    { key: 'expectedCTC', label: 'Expected CTC per Annum', visible: true },
+    { key: 'noticePeriod', label: 'Notice Period (Days)', visible: true },
+    { key: 'isServingNotice', label: 'Currently in Notice', visible: true },
+    { key: 'isImmediateJoiner', label: 'Immediate Joiner', visible: true },
+    { key: 'hasOtherOffers', label: 'Other Offers in Hand', visible: true },
+    { key: 'otherOfferCTC', label: 'Offered CTC (if any)', visible: true },
+    { key: 'certifications', label: 'Certifications', visible: true },
+    { key: 'referredBy', label: 'Referred By', visible: true },
+    { key: 'screeningFeedback', label: 'Initial Screening', visible: true },
+    { key: 'comments', label: 'Additional Comments', visible: true },
+    { key: 'interviewStatus', label: 'Interview Status', visible: true },
+    { key: 'status', label: 'Application Status', visible: true },
     { key: 'round1Recommendation', label: 'Round 1 Feedback', visible: true },
     { key: 'round2Recommendation', label: 'Round 2 Feedback', visible: true },
+    { key: 'offeredCTC', label: 'Offered CTC', visible: true },
+    { key: 'offeredPosition', label: 'Offered Position', visible: true },
     { key: 'actions', label: 'Actions', visible: true },
 ];
+
+// Position title map for displaying full position names
+const positionTitleMap: Record<string, string> = {
+    'sre': 'Site Reliability Engineer',
+    'senior-sre': 'Senior Site Reliability Engineer',
+    'lead-sre': 'Lead Site Reliability Engineer',
+    'app-sre': 'Application Site Reliability Engineer',
+    'soc-engineer': 'Security Operations Centre Engineer',
+    'performance-engineer': 'Performance Engineer',
+    'qa-automation': 'QA Automation Engineer',
+    'devops': 'DevOps Engineer',
+    'lead-sap': 'Lead SAP Engineer',
+    'ai-ml': 'AI/ML Engineer',
+    'ai-ml-intern': 'AI/ML Intern',
+    'internship': 'Internship',
+    'fresher': 'Fresher',
+    // Legacy demand IDs
+    '1': 'Senior DevOps Engineer',
+    '2': 'Full Stack Developer',
+    '3': 'Senior SRE',
+    '4': 'Data Engineer',
+};
 
 interface CandidateTableProps {
     candidates: Candidate[];
@@ -71,6 +108,9 @@ interface CandidateTableProps {
     onScheduleInterview: (candidate: Candidate) => void;
     onMoveForward: (candidate: Candidate) => void;
     onReject: (candidate: Candidate) => void;
+    onInitialScreening: (candidate: Candidate) => void;
+    onStatusChange: (candidateId: string, status: Candidate['status']) => void;
+    onInterviewStatusChange: (candidateId: string, status: Candidate['interviewStatus']) => void;
 }
 
 export function CandidateTable({
@@ -79,9 +119,18 @@ export function CandidateTable({
     onViewResume,
     onScheduleInterview,
     onMoveForward,
-    onReject
+    onReject,
+    onInitialScreening,
+    onStatusChange,
+    onInterviewStatusChange
 }: CandidateTableProps) {
+    // Use a version key to force reset columns if defaultColumns change significantly
     const [columns, setColumns] = useState<Column[]>(defaultColumns);
+
+    // Reset columns if the default columns definition changes (useful for HMR)
+    useEffect(() => {
+        setColumns(defaultColumns);
+    }, []);
     const [selectedCandidates, setSelectedCandidates] = useState<string[]>([]);
     const [sortColumn, setSortColumn] = useState<string>('appliedAt');
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
@@ -142,6 +191,22 @@ export function CandidateTable({
         career_portal: 'Career Page',
     };
 
+    const interviewStatusConfig: Record<string, { label: string; className: string }> = {
+        applied: { label: 'Applied', className: 'bg-muted/50 text-muted-foreground' },
+        profile_screening_comp: { label: 'Profile Screening Comp', className: 'bg-red-500/10 text-red-600 border-red-500/20' },
+        voice_screening_comp: { label: 'Voice Screening Comp', className: 'bg-green-500/10 text-green-600 border-green-500/20' },
+        tech_inter_sched: { label: 'Tech Inter Sched', className: 'bg-orange-500/10 text-orange-600 border-orange-500/20' },
+        tech_inter_comp: { label: 'Tech Inter Comp', className: 'bg-lime-500/10 text-lime-600 border-lime-500/20' },
+        code_inter_sched: { label: 'Code Inter Sched', className: 'bg-orange-500/10 text-orange-600 border-orange-500/20' },
+        code_inter_comp: { label: 'Code Inter Comp', className: 'bg-lime-500/10 text-lime-600 border-lime-500/20' },
+        hr_inter_sched: { label: 'HR Inter Sched', className: 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20' },
+        hr_inter_comp: { label: 'HR Inter Comp', className: 'bg-purple-900/10 text-purple-900 border-purple-900/20' },
+        offer: { label: 'Offer', className: 'bg-teal-500/10 text-teal-600 border-teal-500/20' },
+        pending_final_noti: { label: 'Pending Final Noti', className: 'bg-blue-500/10 text-blue-600 border-blue-500/20' },
+        references: { label: 'Referances', className: 'bg-gray-500/10 text-gray-600 border-gray-500/20' },
+        all_completed: { label: 'All Completed', className: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' },
+    };
+
     return (
         <div className="bg-card border rounded-lg overflow-hidden shadow-sm">
             {/* Table Header Actions */}
@@ -179,254 +244,405 @@ export function CandidateTable({
             </div>
 
             {/* Table */}
-            <div className="overflow-x-auto">
-                <table className="w-full">
+            <div className="overflow-x-auto relative">
+                <table className="w-full border-separate border-spacing-0">
                     <thead>
                         <tr className="border-b border-border bg-muted/50">
-                            <th className="w-12 p-4 align-middle">
-                                <Checkbox
-                                    checked={selectedCandidates.length === candidates.length && candidates.length > 0}
-                                    onCheckedChange={toggleSelectAll}
-                                />
+                            <th className="w-12 p-2 align-middle sticky left-0 z-40 bg-muted border-b border-border shadow-[1px_0_0_0_rgba(0,0,0,0.1)] text-sm font-medium text-muted-foreground text-center">
+                                CD_ID
                             </th>
-                            {visibleColumns.map(column => (
-                                <th
-                                    key={column.key}
-                                    className={cn(
-                                        'p-4 text-left text-sm font-medium text-muted-foreground align-middle whitespace-nowrap',
-                                        column.sortable && 'cursor-pointer hover:bg-muted/70 transition-colors'
-                                    )}
-                                    onClick={() => column.sortable && handleSort(column.key)}
-                                >
-                                    <div className="flex items-center gap-2">
-                                        {column.label}
-                                        {column.sortable && (
-                                            <ArrowUpDown className="w-3 h-3" />
+                            {visibleColumns.map(column => {
+                                const isSticky = ['name', 'email', 'phone'].includes(column.key);
+                                let stickyClass = '';
+                                if (column.key === 'name') stickyClass = 'sticky left-[56px] z-30 bg-muted border-b border-border';
+                                if (column.key === 'email') stickyClass = 'sticky left-[256px] z-30 bg-muted border-b border-border';
+                                if (column.key === 'phone') stickyClass = 'sticky left-[456px] z-30 bg-muted border-b border-border shadow-[2px_0_0_0_rgba(0,0,0,0.1)]';
+
+                                let widthClass = '';
+                                if (column.key === 'name') widthClass = 'w-[200px] min-w-[200px] max-w-[200px]';
+                                if (column.key === 'email') widthClass = 'w-[200px] min-w-[200px] max-w-[200px]';
+                                if (column.key === 'phone') widthClass = 'w-[180px] min-w-[180px] max-w-[180px]';
+
+                                return (
+                                    <th
+                                        key={column.key}
+                                        className={cn(
+                                            'p-4 text-left text-sm font-medium text-muted-foreground align-middle whitespace-nowrap',
+                                            column.sortable && 'cursor-pointer hover:bg-muted transition-colors',
+                                            isSticky && stickyClass,
+                                            widthClass
                                         )}
-                                    </div>
-                                </th>
-                            ))}
+                                        onClick={() => column.sortable && handleSort(column.key)}
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            {column.label}
+                                            {column.sortable && (
+                                                <ArrowUpDown className="w-3 h-3" />
+                                            )}
+                                        </div>
+                                    </th>
+                                );
+                            })}
                         </tr>
                     </thead>
                     <tbody>
                         {sortedCandidates.map((candidate) => (
                             <tr
                                 key={candidate.id}
-                                className="hover:bg-muted/50 transition-colors border-b border-border last:border-0 cursor-pointer"
+                                className="group/row hover:bg-muted/50 transition-colors border-b border-border last:border-0 cursor-pointer"
                                 onClick={() => onViewCandidate(candidate)}
                             >
-                                <td className="p-4 align-middle" onClick={e => e.stopPropagation()}>
-                                    <Checkbox
-                                        checked={selectedCandidates.includes(candidate.id)}
-                                        onCheckedChange={() => toggleSelectCandidate(candidate.id)}
-                                    />
+                                <td className="w-12 p-2 align-middle sticky left-0 z-20 !bg-card border-b border-border group-hover/row:!bg-muted shadow-[1px_0_0_0_rgba(0,0,0,0.1)] text-center">
+                                    <span className="text-sm font-medium text-primary">{candidate.id}</span>
                                 </td>
-                                {visibleColumns.map(column => (
-                                    <td key={column.key} className="p-4 align-middle whitespace-nowrap">
-                                        {column.key === 'name' && (
-                                            <div className="flex items-center gap-3">
-                                                <Avatar className="w-9 h-9">
-                                                    <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
-                                                        {candidate.name.split(' ').map(n => n[0]).join('')}
-                                                    </AvatarFallback>
-                                                </Avatar>
-                                                <div>
-                                                    <p className="font-medium text-foreground text-sm">{candidate.name}</p>
-                                                    <p className="text-xs text-muted-foreground">{candidate.email}</p>
-                                                </div>
-                                            </div>
-                                        )}
-                                        {column.key === 'currentRole' && (
-                                            <span className="text-sm text-foreground">{candidate.currentRole || '-'}</span>
-                                        )}
-                                        {column.key === 'skills' && (
-                                            <div className="flex flex-wrap gap-1 max-w-[200px]">
-                                                {candidate.skills?.slice(0, 3).map(skill => (
-                                                    <span
-                                                        key={skill}
-                                                        className="px-2 py-0.5 bg-secondary text-secondary-foreground text-xs rounded-md"
-                                                    >
-                                                        {skill}
-                                                    </span>
-                                                ))}
-                                                {candidate.skills?.length > 3 && (
-                                                    <span className="text-xs text-muted-foreground self-center">
-                                                        +{candidate.skills.length - 3}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        )}
-                                        {column.key === 'certifications' && (
-                                            <div className="flex flex-wrap gap-1 max-w-[200px]">
-                                                {candidate.certifications?.slice(0, 1).map(cert => (
-                                                    <span
-                                                        key={cert}
-                                                        className="px-2 py-0.5 border text-muted-foreground text-xs rounded-md"
-                                                    >
-                                                        {cert}
-                                                    </span>
-                                                ))}
-                                                {candidate.certifications && candidate.certifications.length > 1 && (
-                                                    <span className="text-xs text-muted-foreground self-center">
-                                                        +{candidate.certifications.length - 1}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        )}
-                                        {column.key === 'experience' && (
-                                            <span className="text-sm text-foreground">{candidate.experience}</span>
-                                        )}
-                                        {column.key === 'status' && (
-                                            <StatusBadge status={candidate.status} />
-                                        )}
-                                        {column.key === 'source' && (
-                                            <span className="text-sm text-muted-foreground">
-                                                {sourceLabels[candidate.source] || candidate.source}
-                                            </span>
-                                        )}
-                                        {column.key === 'appliedAt' && (
-                                            <span className="text-sm text-muted-foreground">
-                                                {format(new Date(candidate.appliedAt), 'MMM d, yyyy')}
-                                            </span>
-                                        )}
-                                        {column.key === 'currentCompany' && (
-                                            <span className="text-sm text-foreground">
-                                                {candidate.currentCompany || '-'}
-                                            </span>
-                                        )}
-                                        {column.key === 'location' && (
-                                            <span className="text-sm text-muted-foreground">
-                                                {candidate.location || '-'}
-                                            </span>
-                                        )}
-                                        {column.key === 'locationPreference' && (
-                                            <span className="text-sm text-muted-foreground">
-                                                {candidate.locationPreference || '-'}
-                                            </span>
-                                        )}
-                                        {column.key === 'currentCTC' && (
-                                            <span className="text-sm text-foreground">
-                                                {candidate.currentCTC || '-'}
-                                            </span>
-                                        )}
-                                        {column.key === 'expectedCTC' && (
-                                            <span className="text-sm text-muted-foreground">
-                                                {candidate.expectedCTC || '-'}
-                                            </span>
-                                        )}
-                                        {column.key === 'noticePeriod' && (
-                                            <span className="text-sm text-muted-foreground">
-                                                {candidate.noticePeriod || '-'}
-                                            </span>
-                                        )}
-                                        {column.key === 'isServingNotice' && (
-                                            <span className="text-sm">
-                                                {candidate.isServingNotice ? (
-                                                    <Badge variant="outline" className="text-amber-600 border-amber-500/30 bg-amber-500/10">Yes</Badge>
-                                                ) : (
-                                                    <span className="text-muted-foreground">No</span>
-                                                )}
-                                            </span>
-                                        )}
-                                        {column.key === 'isImmediateJoiner' && (
-                                            <span className="text-sm">
-                                                {candidate.isImmediateJoiner ? (
-                                                    <Badge variant="outline" className="text-green-600 border-green-500/30 bg-green-500/10">Yes</Badge>
-                                                ) : (
-                                                    <span className="text-muted-foreground">No</span>
-                                                )}
-                                            </span>
-                                        )}
-                                        {column.key === 'hasOtherOffers' && (
-                                            <span className="text-sm">
-                                                {candidate.hasOtherOffers ? (
-                                                    <Badge variant="secondary">Yes</Badge>
-                                                ) : (
-                                                    <span className="text-muted-foreground">No</span>
-                                                )}
-                                            </span>
-                                        )}
-                                        {column.key === 'otherOfferCTC' && (
-                                            <span className="text-sm text-muted-foreground">
-                                                {candidate.otherOfferCTC || '-'}
-                                            </span>
-                                        )}
-                                        {column.key === 'linkedInProfile' && candidate.linkedInProfile && (
-                                            <a
-                                                href={`https://${candidate.linkedInProfile.replace(/^https?:\/\//, '')}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="text-sm text-primary hover:underline"
-                                                onClick={e => e.stopPropagation()}
-                                            >
-                                                View Profile
-                                            </a>
-                                        )}
-                                        {column.key === 'referredBy' && (
-                                            <span className="text-sm text-muted-foreground">
-                                                {candidate.referredBy || '-'}
-                                            </span>
-                                        )}
-                                        {column.key === 'round1Recommendation' && (
-                                            <span className="text-sm text-foreground">
-                                                {candidate.round1Recommendation ? (
-                                                    <Badge variant={candidate.round1Recommendation === 'proceed_to_round2' ? 'default' : 'destructive'}>
-                                                        {candidate.round1Recommendation === 'proceed_to_round2' ? 'Proceed' : 'Reject'}
-                                                    </Badge>
-                                                ) : (
-                                                    <span className="text-muted-foreground">-</span>
-                                                )}
-                                            </span>
-                                        )}
-                                        {column.key === 'round2Recommendation' && (
-                                            <span className="text-sm text-foreground max-w-[150px] truncate inline-block" title={candidate.round2Recommendation || ''}>
-                                                {candidate.round2Recommendation || '-'}
-                                            </span>
-                                        )}
-                                        {column.key === 'actions' && (
-                                            <div onClick={e => e.stopPropagation()}>
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger asChild>
-                                                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-muted">
-                                                            <MoreHorizontal className="w-4 h-4" />
-                                                        </Button>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="end">
-                                                        <DropdownMenuItem onClick={() => onViewCandidate(candidate)}>
-                                                            <Eye className="mr-2 h-4 w-4" />
-                                                            View Details
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuItem onClick={() => onViewResume(candidate)}>
-                                                            <FileText className="mr-2 h-4 w-4" />
-                                                            View Resume
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuItem onClick={() => onScheduleInterview(candidate)}>
-                                                            <Calendar className="mr-2 h-4 w-4" />
-                                                            Schedule Interview
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuSeparator />
-                                                        <DropdownMenuItem onClick={() => onMoveForward(candidate)}>
-                                                            <ArrowUpDown className="mr-2 h-4 w-4" />
-                                                            Move Forward
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuItem
-                                                            className="text-destructive focus:text-destructive"
-                                                            onClick={() => onReject(candidate)}
+                                {visibleColumns.map(column => {
+                                    const isSticky = ['name', 'email', 'phone'].includes(column.key);
+                                    let stickyClass = '';
+                                    if (column.key === 'name') stickyClass = 'sticky left-[56px] z-10 !bg-card group-hover/row:!bg-muted border-b border-border';
+                                    if (column.key === 'email') stickyClass = 'sticky left-[256px] z-10 !bg-card group-hover/row:!bg-muted border-b border-border';
+                                    if (column.key === 'phone') stickyClass = 'sticky left-[456px] z-10 !bg-card group-hover/row:!bg-muted border-b border-border shadow-[2px_0_0_0_rgba(0,0,0,0.1)]';
+
+                                    let widthClass = '';
+                                    if (column.key === 'name') widthClass = 'w-[200px] min-w-[200px] max-w-[200px]';
+                                    if (column.key === 'email') widthClass = 'w-[200px] min-w-[200px] max-w-[200px]';
+                                    if (column.key === 'phone') widthClass = 'w-[180px] min-w-[180px] max-w-[180px]';
+
+                                    return (
+                                        <td
+                                            key={column.key}
+                                            className={cn(
+                                                "p-4 align-middle whitespace-nowrap",
+                                                isSticky && stickyClass,
+                                                widthClass
+                                            )}
+                                        >
+                                            {column.key === 'name' && (() => {
+                                                // Status color map for name column
+                                                const statusTextColors: Record<string, string> = {
+                                                    applied: 'text-info',
+                                                    screening: 'text-warning',
+                                                    interview_scheduled: 'text-blue-600',
+                                                    interview_completed: 'text-slate-600',
+                                                    selected: 'text-success',
+                                                    rejected: 'text-destructive',
+                                                    offer_rolled: 'text-accent',
+                                                    offer_accepted: 'text-indigo-600',
+                                                    offer_rejected: 'text-rose-600',
+                                                    onboarding: 'text-info',
+                                                    onboarded: 'text-success',
+                                                };
+                                                const nameColor = statusTextColors[candidate.status] || 'text-foreground';
+                                                return (
+                                                    <div className="flex items-center gap-3">
+                                                        <Avatar className="w-9 h-9">
+                                                            <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+                                                                {candidate.name.split(' ').map(n => n[0]).join('')}
+                                                            </AvatarFallback>
+                                                        </Avatar>
+                                                        <span className={cn("font-medium text-sm", nameColor)}>{candidate.name}</span>
+                                                    </div>
+                                                );
+                                            })()}
+                                            {column.key === 'email' && (
+                                                <span className="text-sm text-foreground">{candidate.email}</span>
+                                            )}
+                                            {column.key === 'phone' && (
+                                                <span className="text-sm text-foreground">{candidate.phone}</span>
+                                            )}
+                                            {column.key === 'resumeUrl' && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-8 px-2 text-primary hover:text-primary hover:bg-primary/10"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        onViewResume(candidate);
+                                                    }}
+                                                >
+                                                    <FileText className="w-4 h-4 mr-1" />
+                                                    View CV
+                                                </Button>
+                                            )}
+                                            {column.key === 'interestPosition' && (
+                                                <span className="text-sm text-foreground font-medium">
+                                                    {positionTitleMap[candidate.demandId] || candidate.demandId || '-'}
+                                                </span>
+                                            )}
+                                            {column.key === 'currentRole' && (
+                                                <span className="text-sm text-foreground">{candidate.currentRole || '-'}</span>
+                                            )}
+                                            {column.key === 'skills' && (
+                                                <div className="flex flex-wrap gap-1 max-w-[200px]">
+                                                    {candidate.skills?.slice(0, 3).map(skill => (
+                                                        <span
+                                                            key={skill}
+                                                            className="px-2 py-0.5 bg-secondary text-secondary-foreground text-xs rounded-md"
                                                         >
-                                                            <X className="mr-2 h-4 w-4" />
-                                                            Reject
-                                                        </DropdownMenuItem>
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
-                                            </div>
-                                        )}
-                                    </td>
-                                ))}
+                                                            {skill}
+                                                        </span>
+                                                    ))}
+                                                    {candidate.skills?.length > 3 && (
+                                                        <span className="text-xs text-muted-foreground self-center">
+                                                            +{candidate.skills.length - 3}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )}
+                                            {column.key === 'certifications' && (
+                                                <div className="flex flex-wrap gap-1 max-w-[200px]">
+                                                    {candidate.certifications?.slice(0, 1).map(cert => (
+                                                        <span
+                                                            key={cert}
+                                                            className="px-2 py-0.5 border text-muted-foreground text-xs rounded-md"
+                                                        >
+                                                            {cert}
+                                                        </span>
+                                                    ))}
+                                                    {candidate.certifications && candidate.certifications.length > 1 && (
+                                                        <span className="text-xs text-muted-foreground self-center">
+                                                            +{candidate.certifications.length - 1}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )}
+                                            {column.key === 'experience' && (
+                                                <span className="text-sm text-foreground">{candidate.experience}</span>
+                                            )}
+                                            {column.key === 'status' && (
+                                                <div onClick={e => e.stopPropagation()}>
+                                                    <Select
+                                                        value={candidate.status}
+                                                        onValueChange={(value) => onStatusChange(candidate.id, value as Candidate['status'])}
+                                                    >
+                                                        <SelectTrigger className="h-8 w-[140px] text-xs font-medium">
+                                                            <SelectValue>
+                                                                <StatusBadge status={candidate.status} />
+                                                            </SelectValue>
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="applied">Received</SelectItem>
+                                                            <SelectItem value="screening">Proceed Further</SelectItem>
+                                                            <SelectItem value="interview_scheduled">On Hold</SelectItem>
+                                                            <SelectItem value="interview_completed">No Resp Call/Email</SelectItem>
+                                                            <SelectItem value="selected">Accepted</SelectItem>
+                                                            <SelectItem value="rejected">Rejected</SelectItem>
+                                                            <SelectItem value="offer_rolled">Sent</SelectItem>
+                                                            <SelectItem value="offer_accepted">In Notice</SelectItem>
+                                                            <SelectItem value="offer_rejected">Did Not Join</SelectItem>
+                                                            <SelectItem value="onboarding">Onboarding</SelectItem>
+                                                            <SelectItem value="onboarded">Joined</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                            )}
+                                            {column.key === 'source' && (
+                                                <span className="text-sm text-muted-foreground">
+                                                    {sourceLabels[candidate.source] || candidate.source}
+                                                </span>
+                                            )}
+                                            {column.key === 'appliedAt' && (
+                                                <span className="text-sm text-muted-foreground">
+                                                    {format(new Date(candidate.appliedAt), 'MMM d, yyyy')}
+                                                </span>
+                                            )}
+                                            {column.key === 'currentCompany' && (
+                                                <span className="text-sm text-foreground">
+                                                    {candidate.currentCompany || '-'}
+                                                </span>
+                                            )}
+                                            {column.key === 'location' && (
+                                                <span className="text-sm text-muted-foreground">
+                                                    {candidate.location || '-'}
+                                                </span>
+                                            )}
+                                            {column.key === 'locationPreference' && (
+                                                <span className="text-sm text-muted-foreground">
+                                                    {candidate.locationPreference || '-'}
+                                                </span>
+                                            )}
+                                            {column.key === 'currentCTC' && (
+                                                <span className="text-sm text-foreground">
+                                                    {candidate.currentCTC || '-'}
+                                                </span>
+                                            )}
+                                            {column.key === 'expectedCTC' && (
+                                                <span className="text-sm text-muted-foreground">
+                                                    {candidate.expectedCTC || '-'}
+                                                </span>
+                                            )}
+                                            {column.key === 'noticePeriod' && (
+                                                <span className="text-sm text-muted-foreground">
+                                                    {candidate.noticePeriod || '-'}
+                                                </span>
+                                            )}
+                                            {column.key === 'isServingNotice' && (
+                                                <span className="text-sm">
+                                                    {candidate.isServingNotice ? (
+                                                        <Badge variant="outline" className="text-amber-600 border-amber-500/30 bg-amber-500/10">Yes</Badge>
+                                                    ) : (
+                                                        <span className="text-muted-foreground">No</span>
+                                                    )}
+                                                </span>
+                                            )}
+                                            {column.key === 'isImmediateJoiner' && (
+                                                <span className="text-sm">
+                                                    {candidate.isImmediateJoiner ? (
+                                                        <Badge variant="outline" className="text-green-600 border-green-500/30 bg-green-500/10">Yes</Badge>
+                                                    ) : (
+                                                        <span className="text-muted-foreground">No</span>
+                                                    )}
+                                                </span>
+                                            )}
+                                            {column.key === 'hasOtherOffers' && (
+                                                <span className="text-sm">
+                                                    {candidate.hasOtherOffers ? (
+                                                        <Badge variant="secondary">Yes</Badge>
+                                                    ) : (
+                                                        <span className="text-muted-foreground">No</span>
+                                                    )}
+                                                </span>
+                                            )}
+                                            {column.key === 'otherOfferCTC' && (
+                                                <span className="text-sm text-muted-foreground">
+                                                    {candidate.otherOfferCTC || '-'}
+                                                </span>
+                                            )}
+                                            {column.key === 'linkedInProfile' && candidate.linkedInProfile && (
+                                                <a
+                                                    href={`https://${candidate.linkedInProfile.replace(/^https?:\/\//, '')}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-sm text-primary hover:underline"
+                                                    onClick={e => e.stopPropagation()}
+                                                >
+                                                    View Profile
+                                                </a>
+                                            )}
+                                            {column.key === 'screeningFeedback' && (
+                                                <div className="flex items-center gap-2 max-w-[200px]" onClick={e => e.stopPropagation()}>
+                                                    <span className="text-sm text-muted-foreground truncate flex-1" title={candidate.screeningFeedback || ''}>
+                                                        {candidate.screeningFeedback || 'No feedback'}
+                                                    </span>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-6 w-6 text-muted-foreground hover:text-primary"
+                                                        onClick={() => onInitialScreening(candidate)}
+                                                    >
+                                                        <Edit3 className="w-3 h-3" />
+                                                    </Button>
+                                                </div>
+                                            )}
+                                            {column.key === 'interviewStatus' && (
+                                                <div onClick={e => e.stopPropagation()}>
+                                                    <Select
+                                                        value={candidate.interviewStatus || 'applied'}
+                                                        onValueChange={(value) => onInterviewStatusChange(candidate.id, value as Candidate['interviewStatus'])}
+                                                    >
+                                                        <SelectTrigger className="h-8 w-[180px] text-xs font-medium">
+                                                            <SelectValue>
+                                                                {candidate.interviewStatus ? (
+                                                                    <Badge className={cn('border font-medium px-2 py-0', interviewStatusConfig[candidate.interviewStatus]?.className)}>
+                                                                        {interviewStatusConfig[candidate.interviewStatus]?.label}
+                                                                    </Badge>
+                                                                ) : (
+                                                                    <Badge className="bg-muted/50 text-muted-foreground border font-medium px-2 py-0">Applied</Badge>
+                                                                )}
+                                                            </SelectValue>
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            {Object.entries(interviewStatusConfig).map(([key, config]) => (
+                                                                <SelectItem key={key} value={key}>
+                                                                    {config.label}
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                            )}
+                                            {column.key === 'referredBy' && (
+                                                <span className="text-sm text-muted-foreground">
+                                                    {candidate.referredBy || '-'}
+                                                </span>
+                                            )}
+                                            {column.key === 'comments' && (
+                                                <span className="text-sm text-muted-foreground max-w-[200px] truncate block" title={candidate.comments || ''}>
+                                                    {candidate.comments || '-'}
+                                                </span>
+                                            )}
+                                            {column.key === 'round1Recommendation' && (
+                                                <span className="text-sm text-foreground">
+                                                    {candidate.round1Recommendation ? (
+                                                        <Badge variant={candidate.round1Recommendation === 'proceed_to_round2' ? 'default' : 'destructive'}>
+                                                            {candidate.round1Recommendation === 'proceed_to_round2' ? 'Proceed' : 'Reject'}
+                                                        </Badge>
+                                                    ) : (
+                                                        <span className="text-muted-foreground">-</span>
+                                                    )}
+                                                </span>
+                                            )}
+                                            {column.key === 'round2Recommendation' && (
+                                                <span className="text-sm text-foreground max-w-[150px] truncate inline-block" title={candidate.round2Recommendation || ''}>
+                                                    {candidate.round2Recommendation || '-'}
+                                                </span>
+                                            )}
+                                            {column.key === 'offeredCTC' && (
+                                                <span className="text-sm font-semibold text-green-600">
+                                                    {candidate.offeredCTC || '-'}
+                                                </span>
+                                            )}
+                                            {column.key === 'offeredPosition' && (
+                                                <span className="text-sm font-medium text-primary">
+                                                    {candidate.offeredPosition || '-'}
+                                                </span>
+                                            )}
+                                            {
+                                                column.key === 'actions' && (
+                                                    <div onClick={e => e.stopPropagation()}>
+                                                        <DropdownMenu>
+                                                            <DropdownMenuTrigger asChild>
+                                                                <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-muted">
+                                                                    <MoreHorizontal className="w-4 h-4" />
+                                                                </Button>
+                                                            </DropdownMenuTrigger>
+                                                            <DropdownMenuContent align="end">
+                                                                <DropdownMenuItem onClick={() => onViewCandidate(candidate)}>
+                                                                    <Eye className="mr-2 h-4 w-4" />
+                                                                    View Details
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem onClick={() => onViewResume(candidate)}>
+                                                                    <FileText className="mr-2 h-4 w-4" />
+                                                                    View Resume
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem onClick={() => onScheduleInterview(candidate)}>
+                                                                    <Calendar className="mr-2 h-4 w-4" />
+                                                                    Schedule Interview
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuSeparator />
+                                                                <DropdownMenuItem onClick={() => onMoveForward(candidate)}>
+                                                                    <ArrowUpDown className="mr-2 h-4 w-4" />
+                                                                    Move Forward
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem
+                                                                    className="text-destructive focus:text-destructive"
+                                                                    onClick={() => onReject(candidate)}
+                                                                >
+                                                                    <X className="mr-2 h-4 w-4" />
+                                                                    Reject
+                                                                </DropdownMenuItem>
+                                                            </DropdownMenuContent>
+                                                        </DropdownMenu>
+                                                    </div>
+                                                )
+                                            }
+                                        </td>
+                                    );
+                                })}
                             </tr>
                         ))}
                     </tbody>
                 </table>
             </div>
-        </div>
+        </div >
     );
 }

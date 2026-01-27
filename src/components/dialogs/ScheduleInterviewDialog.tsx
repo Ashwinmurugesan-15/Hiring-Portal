@@ -39,110 +39,14 @@ interface ScheduleData {
   interviewerName: string;
 }
 
-const getRound1Template = (candidateName: string, positionTitle: string, date: string, time: string, interviewerName: string, meetLink: string) => {
-  return `Dear ${candidateName},
-
-We are pleased to inform you that your application for the position of ${positionTitle} has been shortlified.
-
-We would like to invite you for Round 1 - Technical Interview / Coding with our team.
-
-Interview Details:
-━━━━━━━━━━━━━━━━━━━━━
-📅 Date: ${date}
-🕐 Time: ${time}
-👤 Interviewer: ${interviewerName}
-🔗 Meeting Link: ${meetLink}
-⏱️ Duration: 1 hour (approx.)
-
-Interview Format:
-━━━━━━━━━━━━━━━━━━━━━
-This round will focus on:
-• Technical assessment and coding challenges
-• Discussion on your technical skills and experience
-• Problem-solving exercises
-• Code review and best practices
-
-What to Prepare:
-━━━━━━━━━━━━━━━━━━━━━
-✓ Review fundamental concepts related to the position
-✓ Practice coding problems
-✓ Be ready to explain your previous projects
-✓ Prepare questions about the role and team
-
-Important Instructions:
-━━━━━━━━━━━━━━━━━━━━━
-✓ Please join the meeting 5 minutes prior to the scheduled time
-✓ Ensure a stable internet connection
-✓ Keep your resume and relevant documents handy
-✓ Have a quiet environment for the interview
-✓ Test your audio and video before the call
-
-Please confirm your availability for this interview by replying to this email.
-
-If you have any questions or need to reschedule, please feel free to contact us.
-
-We look forward to meeting you!
-
-Best regards,
-HR Team / Recruitment Team
-
----
-Note: This is an automated email. Please do not reply directly to this email.
-For any queries, contact us at hr@company.com`;
-};
-
-const getRound2Template = (candidateName: string, positionTitle: string, date: string, time: string, interviewerName: string, meetLink: string) => {
-  return `Dear ${candidateName},
-
-Congratulations! You have successfully cleared Round 1 of the interview process.
-
-We would like to invite you for Round 2 - Technical Interview / HR with our team for the position of ${positionTitle}.
-
-Interview Details:
-━━━━━━━━━━━━━━━━━━━━━
-📅 Date: ${date}
-🕐 Time: ${time}
-👤 Interviewer: ${interviewerName}
-🔗 Meeting Link: ${meetLink}
-⏱️ Duration: 1 hour (approx.)
-
-Interview Format:
-━━━━━━━━━━━━━━━━━━━━━
-This round will focus on:
-• In-depth technical discussion
-• System design and architecture
-• HR round and cultural fit assessment
-• Discussion on compensation and benefits
-• Team expectations and work culture
-
-What to Prepare:
-━━━━━━━━━━━━━━━━━━━━━
-✓ Be ready for advanced technical questions
-✓ Prepare examples of your leadership experience
-✓ Think about your career goals
-✓ Prepare questions about company culture and growth opportunities
-✓ Be ready to discuss salary expectations
-
-Important Instructions:
-━━━━━━━━━━━━━━━━━━━━━
-✓ Please join the meeting 5 minutes prior to the scheduled time
-✓ Ensure a stable internet connection
-✓ Keep your resume and relevant documents handy
-✓ Have a quiet environment for the interview
-✓ Test your audio and video before the call
-
-Please confirm your availability for this interview by replying to this email.
-
-If you have any questions or need to reschedule, please feel free to contact us.
-
-We are excited to move forward with your candidacy!
-
-Best regards,
-HR Team / Recruitment Team
-
----
-Note: This is an automated email. Please do not reply directly to this email.
-For any queries, contact us at hr@company.com`;
+const replacePlaceholders = (template: string, data: Record<string, string>) => {
+  let result = template;
+  Object.entries(data).forEach(([key, value]) => {
+    // Escape special characters for regex
+    const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    result = result.replace(new RegExp(`\\[${escapedKey}\\]`, 'g'), value);
+  });
+  return result;
 };
 
 export const ScheduleInterviewDialog = ({
@@ -151,7 +55,7 @@ export const ScheduleInterviewDialog = ({
   onOpenChange,
   onSchedule
 }: ScheduleInterviewDialogProps) => {
-  const { addInterview } = useRecruitment();
+  const { addInterview, emailTemplates } = useRecruitment();
   const [formData, setFormData] = useState({
     round: '1' as string,
     date: '',
@@ -164,8 +68,26 @@ export const ScheduleInterviewDialog = ({
 
   if (!candidate) return null;
 
+  // Position title map for new position IDs
+  const positionTitleMap: Record<string, string> = {
+    'sre': 'Site Reliability Engineer',
+    'senior-sre': 'Senior Site Reliability Engineer',
+    'lead-sre': 'Lead Site Reliability Engineer',
+    'app-sre': 'Application Site Reliability Engineer',
+    'soc-engineer': 'Security Operations Centre Engineer',
+    'performance-engineer': 'Performance Engineer',
+    'qa-automation': 'QA Automation Engineer (Playwright & Selenium)',
+    'devops': 'DevOps Engineer',
+    'lead-sap': 'Lead SAP Engineer',
+    'ai-ml': 'AI/ML Engineer',
+    'ai-ml-intern': 'AI/ML Intern',
+    'internship': 'Internship',
+    'fresher': 'Fresher',
+  };
+
+  // Get position title from either new IDs or legacy mock demands
   const demand = mockDemands.find(d => d.id === candidate.demandId);
-  const positionTitle = demand?.title || 'Unknown Position';
+  const positionTitle = positionTitleMap[candidate.demandId] || demand?.title || candidate.demandId || 'Unknown Position';
 
   // Update email template when round, date, time, or interviewer changes
   const updateEmailTemplate = (round: string, date: string, time: string, interviewerName: string, meetLink: string) => {
@@ -175,12 +97,22 @@ export const ScheduleInterviewDialog = ({
     const formattedTime = time || '[Time]';
     const finalMeetLink = meetLink || 'https://meet.google.com/xxx-xxxx-xxx';
 
-    if (round === '1') {
-      setEmailSubject(`Interview Invitation - Round 1 - ${positionTitle}`);
-      setEmailBody(getRound1Template(candidate.name, positionTitle, formattedDate, formattedTime, interviewerName, finalMeetLink));
-    } else {
-      setEmailSubject(`Interview Invitation - Round 2 - ${positionTitle}`);
-      setEmailBody(getRound2Template(candidate.name, positionTitle, formattedDate, formattedTime, interviewerName, finalMeetLink));
+    const templateId = round === '1' ? 'round1' : 'round2';
+    const template = emailTemplates.find(t => t.id === templateId);
+
+    if (template) {
+      const pData = {
+        'Candidate Name': candidate.name,
+        'Position': positionTitle,
+        'Date': formattedDate,
+        'Time': formattedTime,
+        'Interviewer': interviewerName,
+        'Link': finalMeetLink,
+        'Resume Link': candidate.resumeUrl ? candidate.resumeUrl : 'Not provided',
+      };
+
+      setEmailSubject(replacePlaceholders(template.subject, pData));
+      setEmailBody(replacePlaceholders(template.body, pData));
     }
   };
 
@@ -235,29 +167,7 @@ export const ScheduleInterviewDialog = ({
     });
 
     onSchedule?.(scheduleData);
-    toast.success(`Interview scheduled and email sent to ${candidate.name}`);
-
-    // Automatically add to Google Calendar
-    const endDate = new Date(scheduledAt.getTime() + 60 * 60 * 1000); // 1 hour duration
-    const formatDateForGoogle = (date: Date) => {
-      return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-    };
-    const title = `Interview: ${positionTitle} - ${candidate.name}`;
-    const details = `Interview with ${candidate.name} for ${positionTitle}\n\nRound: ${formData.round}\nInterviewer: ${formData.interviewerName}`;
-    const location = scheduleData.meetLink;
-
-    const calendarParams = new URLSearchParams({
-      action: 'TEMPLATE',
-      text: title,
-      dates: `${formatDateForGoogle(scheduledAt)}/${formatDateForGoogle(endDate)}`,
-      details: details,
-      location: location,
-      trp: 'false'
-    });
-
-    const googleCalendarUrl = `https://calendar.google.com/calendar/render?${calendarParams.toString()}`;
-    window.open(googleCalendarUrl, '_blank');
-    toast.info('Google Calendar opened - click "Save" to add the interview');
+    toast.success(`Interview scheduled for ${candidate.name}! View it in the Interviews page.`);
 
     onOpenChange(false);
 
@@ -341,14 +251,13 @@ export const ScheduleInterviewDialog = ({
             />
           </div>
 
-          {/* Email Template Preview - Only show when all required fields are filled */}
+          {/* Email Notification Preview */}
           {emailBody && (
-            <div className="border-t pt-4 space-y-3">
+            <div className="border-t pt-4 space-y-4">
               <div className="flex items-center justify-between">
-                <Label className="text-base font-semibold">Email Template (Editable)</Label>
-                <span className="text-xs text-muted-foreground">You can edit this before sending</span>
+                <Label className="text-sm font-semibold">Email Notification Preview</Label>
+                <span className="text-[10px] text-muted-foreground italic">Scheduled for both Candidate & Interviewer</span>
               </div>
-
               <div className="space-y-2">
                 <Label>Subject</Label>
                 <Input
@@ -357,14 +266,13 @@ export const ScheduleInterviewDialog = ({
                   className="font-medium"
                 />
               </div>
-
               <div className="space-y-2">
-                <Label>Email Body</Label>
+                <Label>Body</Label>
                 <Textarea
                   value={emailBody}
                   onChange={(e) => setEmailBody(e.target.value)}
                   rows={15}
-                  className="font-mono text-sm"
+                  className="font-mono text-xs"
                 />
               </div>
             </div>

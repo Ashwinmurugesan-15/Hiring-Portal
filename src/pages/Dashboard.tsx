@@ -6,8 +6,9 @@ import { StatsCard } from '@/components/dashboard/StatsCard';
 import { DemandCard } from '@/components/dashboard/DemandCard';
 import { CandidatePipeline } from '@/components/dashboard/CandidatePipeline';
 import { RecentInterviews } from '@/components/dashboard/RecentInterviews';
-import { mockDemands, mockDashboardStats, mockCandidates, mockInterviews, mockBenchResources } from '@/data/mockData';
+import { mockDemands, mockDashboardStats, mockBenchResources } from '@/data/mockData';
 import { useDemands } from '@/context/DemandsContext';
+import { useRecruitment } from '@/context/RecruitmentContext';
 import { Demand } from '@/types/recruitment';
 import {
   Briefcase,
@@ -20,15 +21,18 @@ import {
   CheckCircle2,
   Users2,
   FolderKanban,
+  Plus,
+  XCircle,
+  Download,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Plus, XCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { CreateDemandDialog } from '@/components/dialogs/CreateDemandDialog';
 import { DemandDetailsDialog } from '@/components/dialogs/DemandDetailsDialog';
 import { ConfirmDialog } from '@/components/dialogs/ConfirmDialog';
+import { DownloadReportsDialog } from '@/components/dialogs/DownloadReportsDialog';
 import { toast } from 'sonner';
 
 const Dashboard = () => {
@@ -39,55 +43,76 @@ const Dashboard = () => {
   const { demands, addDemand, updateDemand, closeDemand, reopenDemand } = useDemands();
   // const [demands, setDemands] = useState(mockDemands); // Removed local state
 
+  const { candidates, interviews } = useRecruitment();
+
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedDemand, setSelectedDemand] = useState<Demand | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isCloseConfirmOpen, setIsCloseConfirmOpen] = useState(false);
+  const [isDownloadOpen, setIsDownloadOpen] = useState(false);
 
   const stats = mockDashboardStats;
 
+  // Filter for open demands only
+  const activeDemands = demands.filter(d => d.status === 'open');
+
   // Calculate role-specific stats
-  const totalApplied = mockCandidates.length;
-  const totalOffered = mockCandidates.filter(c =>
+  const totalApplied = candidates.length;
+  const totalOffered = candidates.filter(c =>
     ['offer_rolled', 'offer_accepted', 'onboarding', 'onboarded'].includes(c.status)
   ).length;
-  const totalRejected = mockCandidates.filter(c =>
-    ['rejected', 'offer_rejected'].includes(c.status)
+  const totalRejected = candidates.filter(c =>
+    ['rejected', 'offer_rejected'].includes(c.status) ||
+    (c.round1Recommendation === 'reject') ||
+    (c.round2Recommendation === 'reject')
   ).length;
-  const totalInterviews = mockInterviews.length;
-  const totalInterviewed = mockCandidates.filter(c =>
+  const totalInterviews = interviews.length;
+  const totalInterviewed = candidates.filter(c =>
     ['interview_scheduled', 'interview_completed', 'selected', 'offer_rolled', 'offer_accepted', 'onboarding', 'onboarded'].includes(c.status)
   ).length;
 
   // Calculate rejection percentages for admin/super admin
-  const screeningRejected = mockCandidates.filter(c => 
+  const screeningRejected = candidates.filter(c =>
     c.status === 'rejected' && (!c.currentRound || c.currentRound === undefined)
   ).length;
-  const screeningTotal = mockCandidates.filter(c => 
-    c.status === 'rejected' || ['screening', 'interview_scheduled', 'interview_completed', 'selected', 'offer_rolled', 'offer_accepted', 'onboarding', 'onboarded'].includes(c.status)
-  ).length;
+
+  const screeningTotal = candidates.filter(c => {
+    const isRejectedInScreening = c.status === 'rejected' && (!c.currentRound || c.currentRound === undefined);
+    const hasPassedScreening = (c.currentRound !== undefined && c.currentRound >= 1) ||
+      ['screening', 'interview_scheduled', 'interview_completed', 'selected', 'offer_rolled', 'offer_accepted', 'onboarding', 'onboarded'].includes(c.status);
+    return isRejectedInScreening || hasPassedScreening;
+  }).length;
+
   const screeningRejectionPercentage = screeningTotal > 0 ? Math.round((screeningRejected / screeningTotal) * 100) : 0;
 
-  const round1Rejected = mockCandidates.filter(c => 
-    c.status === 'rejected' && c.currentRound === 1
+  const round1Rejected = candidates.filter(c =>
+    (c.status === 'rejected' && c.currentRound === 1) ||
+    (c.round1Recommendation === 'reject')
   ).length;
-  const round1Total = mockCandidates.filter(c => 
-    c.currentRound >= 1
+
+  const round1Total = candidates.filter(c =>
+    (c.currentRound !== undefined && c.currentRound >= 1) ||
+    (c.round1Recommendation !== undefined)
   ).length;
+
   const round1RejectionPercentage = round1Total > 0 ? Math.round((round1Rejected / round1Total) * 100) : 0;
 
-  const round2Rejected = mockCandidates.filter(c => 
-    c.status === 'rejected' && c.currentRound === 2
+  const round2Rejected = candidates.filter(c =>
+    (c.status === 'rejected' && c.currentRound === 2) ||
+    (c.round2Recommendation === 'reject')
   ).length;
-  const round2Total = mockCandidates.filter(c => 
-    c.currentRound >= 2
+
+  const round2Total = candidates.filter(c =>
+    (c.currentRound !== undefined && c.currentRound >= 2) ||
+    (c.round2Recommendation !== undefined)
   ).length;
+
   const round2RejectionPercentage = round2Total > 0 ? Math.round((round2Rejected / round2Total) * 100) : 0;
 
   // Calculate rejected per demand
   const getRejectedForDemand = (demandId: string) => {
-    return mockCandidates.filter(c =>
+    return candidates.filter(c =>
       c.demandId === demandId && ['rejected', 'offer_rejected'].includes(c.status)
     ).length;
   };
@@ -150,13 +175,17 @@ const Dashboard = () => {
               </h2>
               <p className="text-muted-foreground mt-1">{getRoleGreeting()}</p>
             </div>
+            <Button variant="outline" size="sm" onClick={() => setIsDownloadOpen(true)}>
+              <Download className="mr-2 h-4 w-4" />
+              All Reports Download
+            </Button>
           </div>
 
           {/* Stats for Interviewer */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <StatsCard
               title="Today's Interviews"
-              value={mockInterviews.filter(i =>
+              value={interviews.filter(i =>
                 format(i.scheduledAt, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')
               ).length}
               icon={<Calendar className="h-5 w-5" />}
@@ -170,7 +199,7 @@ const Dashboard = () => {
             />
             <StatsCard
               title="Completed"
-              value={mockInterviews.filter(i => i.status === 'completed').length}
+              value={interviews.filter(i => i.status === 'completed').length}
               icon={<CheckCircle2 className="h-5 w-5" />}
               variant="success"
             />
@@ -183,7 +212,7 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {mockInterviews
+                {interviews
                   .filter(interview => interview.status === 'scheduled')
                   .sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime())
                   .map((interview) => (
@@ -222,7 +251,7 @@ const Dashboard = () => {
                       </div>
                     </div>
                   ))}
-                {mockInterviews.filter(i => i.status === 'scheduled').length === 0 && (
+                {interviews.filter(i => i.status === 'scheduled').length === 0 && (
                   <p className="text-center text-muted-foreground py-8">
                     No scheduled interviews at the moment.
                   </p>
@@ -248,20 +277,26 @@ const Dashboard = () => {
               </h2>
               <p className="text-muted-foreground mt-1">{getRoleGreeting()}</p>
             </div>
-            <Button
-              className="bg-accent hover:bg-accent/90 text-accent-foreground"
-              onClick={() => setIsCreateOpen(true)}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Create Demand
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setIsDownloadOpen(true)}>
+                <Download className="mr-2 h-4 w-4" />
+                All Reports Download
+              </Button>
+              <Button
+                className="bg-accent hover:bg-accent/90 text-accent-foreground"
+                onClick={() => setIsCreateOpen(true)}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Create Demand
+              </Button>
+            </div>
           </div>
 
           {/* Stats for Hiring Manager */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <StatsCard
               title="Open Positions"
-              value={stats.openPositions}
+              value={activeDemands.length}
               icon={<Briefcase className="h-5 w-5" />}
               trend={{ value: 12, isPositive: true }}
               variant="primary"
@@ -303,7 +338,7 @@ const Dashboard = () => {
               </Button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {demands.map((demand) => (
+              {activeDemands.map((demand) => (
                 <DemandCard
                   key={demand.id}
                   demand={demand}
@@ -340,7 +375,7 @@ const Dashboard = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {demands.map((demand) => (
+                    {activeDemands.map((demand) => (
                       <tr key={demand.id} className="border-b hover:bg-muted/50">
                         <td className="py-3 px-4">
                           <p className="font-medium">{demand.title}</p>
@@ -419,15 +454,21 @@ const Dashboard = () => {
             </h2>
             <p className="text-muted-foreground mt-1">{getRoleGreeting()}</p>
           </div>
-          {(user?.role === 'super_admin') && (
-            <Button
-              className="bg-accent hover:bg-accent/90 text-accent-foreground"
-              onClick={() => setIsCreateOpen(true)}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Create Demand
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setIsDownloadOpen(true)}>
+              <Download className="mr-2 h-4 w-4" />
+              All Reports Download
             </Button>
-          )}
+            {(user?.role === 'super_admin') && (
+              <Button
+                className="bg-accent hover:bg-accent/90 text-accent-foreground"
+                onClick={() => setIsCreateOpen(true)}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Create Demand
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Stats Grid */}
@@ -441,7 +482,7 @@ const Dashboard = () => {
           />
           <StatsCard
             title="Candidates Selected"
-            value={mockCandidates.filter(c => c.status === 'selected').length}
+            value={candidates.filter(c => c.status === 'selected').length}
             icon={<CheckCircle2 className="h-5 w-5" />}
             variant="success"
           />
@@ -459,13 +500,13 @@ const Dashboard = () => {
           />
           <StatsCard
             title="Candidates Offered"
-            value={mockCandidates.filter(c => c.status === 'offer_rolled').length}
+            value={candidates.filter(c => c.status === 'offer_rolled').length}
             icon={<FileCheck className="h-5 w-5" />}
             variant="warning"
           />
           <StatsCard
             title="Candidates Onboarded"
-            value={mockCandidates.filter(c => c.status === 'onboarded').length}
+            value={candidates.filter(c => c.status === 'onboarded').length}
             icon={<UserCheck className="h-5 w-5" />}
             variant="default"
           />
@@ -516,7 +557,7 @@ const Dashboard = () => {
               </Button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {demands.map((demand) => (
+              {activeDemands.map((demand) => (
                 <DemandCard
                   key={demand.id}
                   demand={demand}
@@ -575,6 +616,11 @@ const Dashboard = () => {
           confirmLabel="Close Position"
           variant="destructive"
           onConfirm={confirmCloseDemand}
+        />
+
+        <DownloadReportsDialog
+          open={isDownloadOpen}
+          onOpenChange={setIsDownloadOpen}
         />
       </div>
     </DashboardLayout>

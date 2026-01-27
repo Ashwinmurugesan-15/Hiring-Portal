@@ -24,6 +24,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { SettingsDialog } from '@/components/dialogs/SettingsDialog';
 
 interface NavItem {
   icon: React.ElementType;
@@ -35,7 +36,6 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard', roles: ['super_admin', 'admin', 'hiring_manager', 'interviewer'], permissionKey: 'dashboard' },
-  { icon: Users, label: 'User Management', href: '/users', roles: ['super_admin'] }, // No permission key - only super admin or users with canManageUsers
   { icon: Briefcase, label: 'Demands', href: '/demands', roles: ['super_admin', 'admin', 'hiring_manager'], permissionKey: 'demands' },
   { icon: Users2, label: 'Demand Roles', href: '/demand-roles', roles: ['super_admin', 'admin', 'hiring_manager'], permissionKey: 'demandRoles' },
   { icon: ClipboardList, label: 'Candidates', href: '/candidates', roles: ['super_admin', 'admin', 'hiring_manager'], permissionKey: 'candidates' },
@@ -44,10 +44,12 @@ const navItems: NavItem[] = [
   { icon: UserCheck, label: 'Onboarding', href: '/onboarding', roles: ['super_admin', 'admin'], permissionKey: 'onboarding' },
   { icon: Users2, label: 'Bench Resources', href: '/bench', roles: ['super_admin', 'admin'], permissionKey: 'bench' },
   { icon: FolderKanban, label: 'Projects', href: '/projects', roles: ['super_admin', 'admin'], permissionKey: 'projects' },
+  { icon: Users, label: 'User Management', href: '/users', roles: ['super_admin'] },
 ];
 
 export const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const location = useLocation();
   const { user, logout } = useAuth();
 
@@ -165,34 +167,64 @@ export const Sidebar = () => {
                 </p>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={logout}
-              className="w-full justify-start text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Sign Out
-            </Button>
-          </div>
-        ) : (
-          <Tooltip delayDuration={0}>
-            <TooltipTrigger asChild>
+            <div className="flex gap-2">
               <Button
                 variant="ghost"
-                size="icon"
-                onClick={logout}
-                className="w-full text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                size="sm"
+                onClick={() => setSettingsOpen(true)}
+                className="flex-1 justify-start text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
               >
-                <LogOut className="h-5 w-5" />
+                <Settings className="h-4 w-4 mr-2" />
+                Settings
               </Button>
-            </TooltipTrigger>
-            <TooltipContent side="right" className="bg-card text-card-foreground border">
-              Sign Out
-            </TooltipContent>
-          </Tooltip>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={logout}
+                className="flex-1 justify-start text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign Out
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <Tooltip delayDuration={0}>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setSettingsOpen(true)}
+                  className="w-full text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                >
+                  <Settings className="h-5 w-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="bg-card text-card-foreground border">
+                Settings
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip delayDuration={0}>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={logout}
+                  className="w-full text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                >
+                  <LogOut className="h-5 w-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="bg-card text-card-foreground border">
+                Sign Out
+              </TooltipContent>
+            </Tooltip>
+          </div>
         )}
       </div>
+
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
     </aside>
   );
 };

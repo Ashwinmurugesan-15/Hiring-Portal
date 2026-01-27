@@ -13,6 +13,20 @@ export type CandidateStatus =
   | 'onboarding'
   | 'onboarded';
 
+export type InterviewStatus =
+  | 'applied'
+  | 'profile_screening_comp'
+  | 'voice_screening_comp'
+  | 'tech_inter_sched'
+  | 'tech_inter_comp'
+  | 'code_inter_sched'
+  | 'code_inter_comp'
+  | 'hr_inter_sched'
+  | 'hr_inter_comp'
+  | 'offer'
+  | 'pending_final_noti'
+  | 'references'
+  | 'all_completed';
 
 export type InterviewRound = 1 | 2 | 3;
 
@@ -78,6 +92,7 @@ export interface Candidate {
   currentRound?: InterviewRound;
   expectedCTC?: string;
   offeredCTC?: string;
+  offeredPosition?: string;
   dateOfJoining?: Date;
   linkedInProfile?: string;
   currentRole?: string;
@@ -92,6 +107,8 @@ export interface Candidate {
   comments?: string;
   round1Recommendation?: string;
   round2Recommendation?: string;
+  screeningFeedback?: string;
+  interviewStatus?: InterviewStatus;
 }
 
 export interface Interview {
@@ -198,4 +215,11 @@ export interface Client {
   phone: string;
   projectCount: number;
   activeProjects: number;
+}
+
+export interface EmailTemplate {
+  id: string;
+  name: string;
+  subject: string;
+  body: string;
 }

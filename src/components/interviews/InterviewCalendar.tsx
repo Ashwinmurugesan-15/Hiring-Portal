@@ -28,11 +28,17 @@ export const InterviewCalendar = ({
 
     // Get dates that have interviews
     const interviewDates = interviews.reduce((acc, interview) => {
-        const dateStr = format(interview.scheduledAt, 'yyyy-MM-dd');
-        if (!acc[dateStr]) {
-            acc[dateStr] = [];
+        try {
+            const date = new Date(interview.scheduledAt);
+            if (isNaN(date.getTime())) return acc;
+            const dateStr = format(date, 'yyyy-MM-dd');
+            if (!acc[dateStr]) {
+                acc[dateStr] = [];
+            }
+            acc[dateStr].push(interview);
+        } catch (e) {
+            console.error('Error formatting interview date:', e);
         }
-        acc[dateStr].push(interview);
         return acc;
     }, {} as Record<string, Interview[]>);
 
@@ -67,30 +73,31 @@ export const InterviewCalendar = ({
         return (
             <div
                 className={cn(
-                    'relative w-full h-full min-h-[40px] flex flex-col items-center justify-center cursor-pointer rounded-lg transition-all',
+                    'relative w-full h-full min-h-[44px] flex flex-col items-center justify-center cursor-pointer rounded-lg transition-all',
                     isSelected && 'bg-primary text-primary-foreground',
                     isToday && !isSelected && 'ring-2 ring-primary ring-offset-2',
-                    count > 0 && !isSelected && 'bg-accent/20'
+                    count > 0 && !isSelected && 'bg-primary/10'
                 )}
                 onClick={() => handleDayClick(day)}
+                title={count > 0 ? `${count} interview${count > 1 ? 's' : ''} scheduled` : undefined}
             >
-                <span className={cn("text-sm font-medium", isSelected && "text-primary-foreground")}>
+                <span className={cn("text-sm font-semibold", isSelected && "text-primary-foreground")}>
                     {format(day, 'd')}
                 </span>
                 {count > 0 && (
-                    <div className="flex gap-0.5 mt-1">
+                    <div className="flex gap-1 mt-1">
                         {count <= 3 ? (
                             Array.from({ length: count }).map((_, i) => (
                                 <span
                                     key={i}
                                     className={cn(
-                                        "w-1.5 h-1.5 rounded-full",
-                                        isSelected ? "bg-primary-foreground" : "bg-primary"
+                                        "w-2 h-2 rounded-full",
+                                        isSelected ? "bg-white" : "bg-primary"
                                     )}
                                 />
                             ))
                         ) : (
-                            <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4">
+                            <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4 bg-primary text-primary-foreground border-none">
                                 {count}
                             </Badge>
                         )}

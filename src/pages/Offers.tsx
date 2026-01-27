@@ -45,6 +45,8 @@ import {
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { StatsCard } from '@/components/dashboard/StatsCard';
+import { useRecruitment } from '@/context/RecruitmentContext';
+import { Candidate } from '@/types/recruitment';
 
 interface Offer {
   id: string;
@@ -61,6 +63,8 @@ interface Offer {
   createdAt: Date;
   expiresAt: Date;
   notes?: string;
+  experience?: string;
+  currentCompany?: string;
 }
 
 const initialOffers: Offer[] = [
@@ -153,12 +157,36 @@ const statusConfig = {
 };
 
 const Offers = () => {
-  const [offers, setOffers] = useState<Offer[]>(initialOffers);
+  const { candidates, updateCandidateOfferDetails } = useRecruitment();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
+
+  // Derive offers from candidates who have an offer_rolled status or have an offeredCTC
+  const offers: Offer[] = candidates
+    .filter(c => c.status === 'offer_rolled' || c.status === 'offer_accepted' || c.status === 'offer_rejected' || c.offeredCTC || c.offeredPosition)
+    .map(c => ({
+      id: c.id,
+      candidateId: c.id,
+      candidateName: c.name,
+      candidateEmail: c.email,
+      demandTitle: 'Position Title', // Should ideally come from demands context, but keeping it simple for now as per current Offers.tsx logic
+      position: c.offeredPosition || c.currentRole || 'Job Role',
+      location: c.location || 'Remote',
+      offeredCTC: c.offeredCTC || '0 LPA',
+      expectedCTC: c.expectedCTC || '0 LPA',
+      joiningDate: c.dateOfJoining || new Date(),
+      status: (c.status === 'offer_accepted' ? 'accepted' :
+        c.status === 'offer_rejected' ? 'rejected' :
+          c.status === 'offer_rolled' ? 'sent' : 'draft') as Offer['status'],
+      createdAt: c.appliedAt || new Date(),
+      expiresAt: new Date(), // Mocked
+      notes: '',
+      experience: c.experience || '',
+      currentCompany: c.currentCompany || ''
+    }));
 
   const filteredOffers = offers.filter(offer => {
     const matchesSearch = offer.candidateName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -175,11 +203,15 @@ const Offers = () => {
     negotiating: offers.filter(o => o.status === 'negotiating').length,
   };
 
-  const handleUpdateStatus = (offerId: string, status: Offer['status']) => {
-    setOffers(offers.map(o =>
-      o.id === offerId ? { ...o, status } : o
-    ));
-    toast.success(`Offer status updated to ${statusConfig[status].label}`);
+  const handleUpdateStatus = (candidateId: string, status: Offer['status']) => {
+    const candidateStatus = status === 'accepted' ? 'offer_accepted' :
+      status === 'rejected' ? 'offer_rejected' :
+        status === 'sent' ? 'offer_rolled' : 'screening';
+
+    updateCandidateOfferDetails(candidateId, {
+      status: candidateStatus as Candidate['status']
+    });
+    toast.success(`Offer marked as ${statusConfig[status].label}`);
   };
 
   const handleDownloadOffer = (offer: Offer) => {
@@ -188,9 +220,17 @@ const Offers = () => {
 
   const handleUpdateOffer = () => {
     if (!selectedOffer) return;
-    setOffers(offers.map(o => o.id === selectedOffer.id ? selectedOffer : o));
+    updateCandidateOfferDetails(selectedOffer.candidateId, {
+      offeredCTC: selectedOffer.offeredCTC,
+      offeredPosition: selectedOffer.position,
+      dateOfJoining: selectedOffer.joiningDate,
+      experience: selectedOffer.experience,
+      currentCompany: selectedOffer.currentCompany,
+      status: (selectedOffer.status === 'accepted' ? 'offer_accepted' :
+        selectedOffer.status === 'rejected' ? 'offer_rejected' :
+          selectedOffer.status === 'sent' ? 'offer_rolled' : 'screening') as Candidate['status']
+    });
     setIsEditOpen(false);
-    toast.success('Offer updated successfully');
   };
 
   return (
@@ -282,7 +322,14 @@ const Offers = () => {
               {filteredOffers.map((offer) => {
                 const StatusIcon = statusConfig[offer.status].icon;
                 return (
-                  <TableRow key={offer.id}>
+                  <TableRow
+                    key={offer.id}
+                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => {
+                      setSelectedOffer(offer);
+                      setIsViewOpen(true);
+                    }}
+                  >
                     <TableCell>
                       <div>
                         <p className="font-medium text-foreground">{offer.candidateName}</p>
@@ -317,7 +364,7 @@ const Offers = () => {
                         {statusConfig[offer.status].label}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-2">
                         <Button
                           variant="ghost"
@@ -446,6 +493,31 @@ const Offers = () => {
             </DialogHeader>
             {selectedOffer && (
               <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Offered Position</Label>
+                  <Input
+                    value={selectedOffer.position}
+                    onChange={(e) => setSelectedOffer({ ...selectedOffer, position: e.target.value })}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Experience</Label>
+                    <Input
+                      value={selectedOffer.experience || ''}
+                      onChange={(e) => setSelectedOffer({ ...selectedOffer, experience: e.target.value })}
+                      placeholder="e.g., 5 years"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Current Organization</Label>
+                    <Input
+                      value={selectedOffer.currentCompany || ''}
+                      onChange={(e) => setSelectedOffer({ ...selectedOffer, currentCompany: e.target.value })}
+                      placeholder="Company Name"
+                    />
+                  </div>
+                </div>
                 <div className="space-y-2">
                   <Label>Offered CTC</Label>
                   <Input
