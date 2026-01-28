@@ -177,11 +177,8 @@ const Dashboard = () => {
               </h2>
               <p className="text-muted-foreground mt-1">{getRoleGreeting()}</p>
             </div>
-            <Button variant="outline" size="sm" onClick={() => setIsDownloadOpen(true)}>
-              <Download className="mr-2 h-4 w-4" />
-              All Reports Download
-            </Button>
           </div>
+
 
           {/* Stats for Interviewer */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -261,8 +258,8 @@ const Dashboard = () => {
               </div>
             </CardContent>
           </Card>
-        </div>
-      </DashboardLayout>
+        </div >
+      </DashboardLayout >
     );
   }
 
@@ -280,10 +277,7 @@ const Dashboard = () => {
               <p className="text-muted-foreground mt-1">{getRoleGreeting()}</p>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => setIsDownloadOpen(true)}>
-                <Download className="mr-2 h-4 w-4" />
-                All Reports Download
-              </Button>
+              {/* Download button removed for Hiring Manager */}
               <Button
                 className="bg-accent hover:bg-accent/90 text-accent-foreground"
                 onClick={() => setIsCreateOpen(true)}
@@ -439,6 +433,7 @@ const Dashboard = () => {
             variant="destructive"
             onConfirm={confirmCloseDemand}
           />
+
         </div>
       </DashboardLayout>
     );

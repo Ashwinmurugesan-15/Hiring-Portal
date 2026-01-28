@@ -12,6 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { useRecruitment } from '@/context/RecruitmentContext';
 import { useDemands } from '@/context/DemandsContext';
+import { useAuth } from '@/context/AuthContext';
 import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
 import { Download } from 'lucide-react';
@@ -24,6 +25,7 @@ interface DownloadReportsDialogProps {
 export const DownloadReportsDialog = ({ open, onOpenChange }: DownloadReportsDialogProps) => {
     const { candidates, interviews } = useRecruitment();
     const { demands } = useDemands();
+    const { user } = useAuth();
 
     const [selectedReports, setSelectedReports] = useState({
         candidates: true,
@@ -65,8 +67,33 @@ export const DownloadReportsDialog = ({ open, onOpenChange }: DownloadReportsDia
     const downloadExcel = () => {
         const workbook = XLSX.utils.book_new();
 
+        // Role-based filtering
+        let filteredCandidates = candidates;
+        let filteredInterviews = interviews;
+        let filteredDemands = demands;
+
+        if (user?.role === 'interviewer') {
+            // Interviewers: match by ID (preferred) or Name (fallback)
+            filteredInterviews = interviews.filter(i =>
+                (i.interviewerId === user.id) ||
+                (i.interviewerName?.toLowerCase() === user.name?.toLowerCase())
+            );
+
+            // And candidates related to those interviews
+            const candidateIds = new Set(filteredInterviews.map(i => i.candidateId));
+            filteredCandidates = candidates.filter(c => candidateIds.has(c.id));
+            filteredDemands = [];
+        } else if (user?.role === 'hiring_manager') {
+            // Hiring Managers see open demands (matching dashboard)
+            filteredDemands = demands.filter(d => d.status === 'open');
+            const demandIds = new Set(filteredDemands.map(d => d.id));
+            // Filter candidates and interviews by these demands
+            filteredCandidates = candidates.filter(c => demandIds.has(c.demandId));
+            filteredInterviews = interviews.filter(i => demandIds.has(i.demandId));
+        }
+
         if (selectedReports.candidates) {
-            const data = candidates.map(c => ({
+            const data = filteredCandidates.map(c => ({
                 Name: c.name,
                 Email: c.email,
                 Phone: c.phone,
@@ -79,7 +106,7 @@ export const DownloadReportsDialog = ({ open, onOpenChange }: DownloadReportsDia
         }
 
         if (selectedReports.interviews) {
-            const data = interviews.map(i => ({
+            const data = filteredInterviews.map(i => ({
                 Candidate: i.candidateName,
                 'Demand Title': i.demandTitle,
                 Round: i.round,
@@ -92,7 +119,7 @@ export const DownloadReportsDialog = ({ open, onOpenChange }: DownloadReportsDia
         }
 
         if (selectedReports.demands) {
-            const data = demands.map(d => ({
+            const data = filteredDemands.map(d => ({
                 Title: d.title,
                 Role: d.role,
                 Location: d.location,
@@ -105,7 +132,7 @@ export const DownloadReportsDialog = ({ open, onOpenChange }: DownloadReportsDia
         }
 
         if (selectedReports.selected) {
-            const data = candidates.filter(c => c.status === 'selected').map(c => ({
+            const data = filteredCandidates.filter(c => c.status === 'selected').map(c => ({
                 Name: c.name,
                 Email: c.email,
                 Position: c.offeredPosition || '-',
@@ -116,7 +143,7 @@ export const DownloadReportsDialog = ({ open, onOpenChange }: DownloadReportsDia
         }
 
         if (selectedReports.onboarding) {
-            const data = candidates.filter(c => ['onboarding', 'onboarded'].includes(c.status)).map(c => ({
+            const data = filteredCandidates.filter(c => ['onboarding', 'onboarded'].includes(c.status)).map(c => ({
                 Name: c.name,
                 Email: c.email,
                 Status: c.status,
@@ -127,7 +154,7 @@ export const DownloadReportsDialog = ({ open, onOpenChange }: DownloadReportsDia
         }
 
         if (selectedReports.offers) {
-            const data = candidates.filter(c => ['offer_rolled', 'offer_accepted'].includes(c.status)).map(c => ({
+            const data = filteredCandidates.filter(c => ['offer_rolled', 'offer_accepted'].includes(c.status)).map(c => ({
                 Name: c.name,
                 Email: c.email,
                 Status: c.status,
@@ -140,27 +167,27 @@ export const DownloadReportsDialog = ({ open, onOpenChange }: DownloadReportsDia
         if (selectedReports.dashboard) {
             // 1. Dashboard Summary Stats
             const summaryData = [
-                { Metric: 'Total Candidates Applied', Value: candidates.length },
-                { Metric: 'Candidates Selected', Value: candidates.filter(c => c.status === 'selected').length },
-                { Metric: 'Candidates Interviewed', Value: candidates.filter(c => ['interview_scheduled', 'interview_completed', 'selected', 'offer_rolled', 'offer_accepted', 'onboarding', 'onboarded'].includes(c.status)).length },
-                { Metric: 'Candidates Rejected', Value: candidates.filter(c => ['rejected', 'offer_rejected'].includes(c.status) || c.round1Recommendation === 'reject' || c.round2Recommendation === 'reject').length },
-                { Metric: 'Candidates Offered', Value: candidates.filter(c => c.status === 'offer_rolled').length },
-                { Metric: 'Candidates Onboarded', Value: candidates.filter(c => c.status === 'onboarded').length },
-                { Metric: 'Bench Strength', Value: 8 }, // Mock value matches Dashboard.tsx
-                { Metric: 'Allocated to Projects', Value: 1 }, // Mock value matches Dashboard.tsx
+                { Metric: 'Total Candidates Applied', Value: filteredCandidates.length },
+                { Metric: 'Candidates Selected', Value: filteredCandidates.filter(c => c.status === 'selected').length },
+                { Metric: 'Candidates Interviewed', Value: filteredCandidates.filter(c => ['interview_scheduled', 'interview_completed', 'selected', 'offer_rolled', 'offer_accepted', 'onboarding', 'onboarded'].includes(c.status)).length },
+                { Metric: 'Candidates Rejected', Value: filteredCandidates.filter(c => ['rejected', 'offer_rejected'].includes(c.status) || c.round1Recommendation === 'reject' || c.round2Recommendation === 'reject').length },
+                { Metric: 'Candidates Offered', Value: filteredCandidates.filter(c => c.status === 'offer_rolled').length },
+                { Metric: 'Candidates Onboarded', Value: filteredCandidates.filter(c => c.status === 'onboarded').length },
+                { Metric: 'Bench Strength', Value: user?.role === 'super_admin' || user?.role === 'admin' ? 8 : 0 }, // Only visible to admins
+                { Metric: 'Allocated to Projects', Value: user?.role === 'super_admin' || user?.role === 'admin' ? 1 : 0 },
             ];
             const summarySheet = XLSX.utils.json_to_sheet(summaryData);
             XLSX.utils.book_append_sheet(workbook, summarySheet, 'Dashboard Summary');
 
             // 2. Rejection Metrics
-            const screeningRejected = candidates.filter(c => c.status === 'rejected' && (!c.currentRound || c.currentRound === undefined)).length;
-            const screeningTotal = candidates.filter(c => (c.status === 'rejected' && (!c.currentRound || c.currentRound === undefined)) || (c.currentRound !== undefined && c.currentRound >= 1) || ['screening', 'interview_scheduled', 'interview_completed', 'selected', 'offer_rolled', 'offer_accepted', 'onboarding', 'onboarded'].includes(c.status)).length;
+            const screeningRejected = filteredCandidates.filter(c => c.status === 'rejected' && (!c.currentRound || c.currentRound === undefined)).length;
+            const screeningTotal = filteredCandidates.filter(c => (c.status === 'rejected' && (!c.currentRound || c.currentRound === undefined)) || (c.currentRound !== undefined && c.currentRound >= 1) || ['screening', 'interview_scheduled', 'interview_completed', 'selected', 'offer_rolled', 'offer_accepted', 'onboarding', 'onboarded'].includes(c.status)).length;
 
-            const round1Rejected = candidates.filter(c => (c.status === 'rejected' && c.currentRound === 1) || (c.round1Recommendation === 'reject')).length;
-            const round1Total = candidates.filter(c => (c.currentRound !== undefined && c.currentRound >= 1) || (c.round1Recommendation !== undefined)).length;
+            const round1Rejected = filteredCandidates.filter(c => (c.status === 'rejected' && c.currentRound === 1) || (c.round1Recommendation === 'reject')).length;
+            const round1Total = filteredCandidates.filter(c => (c.currentRound !== undefined && c.currentRound >= 1) || (c.round1Recommendation !== undefined)).length;
 
-            const round2Rejected = candidates.filter(c => (c.status === 'rejected' && c.currentRound === 2) || (c.round2Recommendation === 'reject')).length;
-            const round2Total = candidates.filter(c => (c.currentRound !== undefined && c.currentRound >= 2) || (c.round2Recommendation !== undefined)).length;
+            const round2Rejected = filteredCandidates.filter(c => (c.status === 'rejected' && c.currentRound === 2) || (c.round2Recommendation === 'reject')).length;
+            const round2Total = filteredCandidates.filter(c => (c.currentRound !== undefined && c.currentRound >= 2) || (c.round2Recommendation !== undefined)).length;
 
             const rejectionData = [
                 { Stage: 'Screening', 'Rejected Count': screeningRejected, 'Total Count': screeningTotal, 'Percentage': screeningTotal > 0 ? `${Math.round((screeningRejected / screeningTotal) * 100)}%` : '0%' },
@@ -171,8 +198,8 @@ export const DownloadReportsDialog = ({ open, onOpenChange }: DownloadReportsDia
             XLSX.utils.book_append_sheet(workbook, rejectionSheet, 'Rejection Metrics');
 
             // 3. Demand Summary Analysis
-            const demandSummaryData = demands.filter(d => d.status === 'open').map(d => {
-                const demandCandidates = candidates.filter(c => c.demandId === d.id);
+            const demandSummaryData = filteredDemands.filter(d => d.status === 'open').map(d => {
+                const demandCandidates = filteredCandidates.filter(c => c.demandId === d.id);
                 return {
                     'Demand Title': d.title,
                     'Location': d.location,
@@ -189,11 +216,11 @@ export const DownloadReportsDialog = ({ open, onOpenChange }: DownloadReportsDia
 
             // 4. Hiring Pipeline
             const pipelineData = [
-                { Stage: 'Applied', Count: candidates.length },
-                { Stage: 'Screening', Count: candidates.filter(c => c.status === 'screening').length },
-                { Stage: 'Interviewing', Count: candidates.filter(c => c.status === 'interview_scheduled').length },
-                { Stage: 'Selected/Offered', Count: candidates.filter(c => ['selected', 'offer_rolled', 'offer_accepted'].includes(c.status)).length },
-                { Stage: 'Joined', Count: candidates.filter(c => c.status === 'onboarded').length },
+                { Stage: 'Applied', Count: filteredCandidates.length },
+                { Stage: 'Screening', Count: filteredCandidates.filter(c => c.status === 'screening').length },
+                { Stage: 'Interviewing', Count: filteredCandidates.filter(c => c.status === 'interview_scheduled').length },
+                { Stage: 'Selected/Offered', Count: filteredCandidates.filter(c => ['selected', 'offer_rolled', 'offer_accepted'].includes(c.status)).length },
+                { Stage: 'Joined', Count: filteredCandidates.filter(c => c.status === 'onboarded').length },
             ];
             const pipelineSheet = XLSX.utils.json_to_sheet(pipelineData);
             XLSX.utils.book_append_sheet(workbook, pipelineSheet, 'Hiring Pipeline');

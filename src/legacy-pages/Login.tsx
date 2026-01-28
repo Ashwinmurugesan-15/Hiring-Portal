@@ -17,6 +17,8 @@ const Login = () => {
     const error = searchParams.get('error');
     if (error === 'unauthorized') {
       setErrorMsg('This Google account is not registered. Please contact the Super Admin.');
+    } else if (error === 'inactive') {
+      setErrorMsg('Your account is currently inactive. Please contact the administrator.');
     } else if (error) {
       setErrorMsg('An error occurred during sign in. Please try again.');
     }
@@ -78,7 +80,7 @@ const Login = () => {
           <Button
             type="button"
             variant="outline"
-            className="w-full h-12 gap-3 text-base border-border hover:bg-muted/50 transition-all duration-200"
+            className="w-full h-12 gap-3 text-base border-border hover:bg-muted/50 hover:text-foreground transition-all duration-200"
             onClick={handleSignIn}
             disabled={isLoading}
           >

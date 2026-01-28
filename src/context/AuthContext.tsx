@@ -33,6 +33,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       const foundUser = getUserByEmail(session.user.email);
       if (foundUser) {
+        if (!foundUser.isActive) {
+          console.warn(`Inactive user attempted access: ${session.user.email}`);
+          signOut({ callbackUrl: '/login?error=inactive' });
+          return;
+        }
+
         console.log(`Syncing user permissions for: ${session.user.email}`);
         syncedEmailRef.current = session.user.email;
         setUser({
