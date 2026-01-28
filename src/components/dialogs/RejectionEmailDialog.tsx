@@ -37,9 +37,10 @@ export const RejectionEmailDialog = ({
     onOpenChange,
     onConfirm
 }: RejectionEmailDialogProps) => {
-    const { emailTemplates } = useRecruitment();
+    const { emailTemplates, sendEmail } = useRecruitment();
     const [emailSubject, setEmailSubject] = useState('');
     const [emailBody, setEmailBody] = useState('');
+    const [isSending, setIsSending] = useState(false);
 
     // Position title map
     const positionTitleMap: Record<string, string> = {
@@ -75,13 +76,25 @@ export const RejectionEmailDialog = ({
         }
     }, [candidate, open, emailTemplates, positionTitle]);
 
-    const handleSend = () => {
-        console.log(`Sending rejection email to ${candidate?.email}`);
-        console.log(`Subject: ${emailSubject}`);
-        console.log(`Body: ${emailBody}`);
-        toast.success(`Rejection email sent to ${candidate?.name}`);
-        onConfirm();
-        onOpenChange(false);
+    const handleSend = async () => {
+        if (!candidate || !candidate.email) {
+            toast.error('Candidate email is missing');
+            return;
+        }
+
+        setIsSending(true);
+        try {
+            const result = await sendEmail(candidate.email, emailSubject, emailBody.replace(/\n/g, '<br>'));
+            if (result.success) {
+                toast.success(`Rejection email sent to ${candidate.name}`);
+                onConfirm(); // This likely handles the status update in the parent
+                onOpenChange(false);
+            }
+        } catch (error) {
+            console.error('Failed to send rejection email', error);
+        } finally {
+            setIsSending(false);
+        }
     };
 
     if (!candidate) return null;
@@ -130,8 +143,8 @@ export const RejectionEmailDialog = ({
                     <Button variant="outline" onClick={() => onOpenChange(false)}>
                         Cancel
                     </Button>
-                    <Button variant="destructive" onClick={handleSend}>
-                        Reject & Send Email
+                    <Button variant="destructive" onClick={handleSend} disabled={isSending}>
+                        {isSending ? 'Sending...' : 'Reject & Send Email'}
                     </Button>
                 </DialogFooter>
             </DialogContent>

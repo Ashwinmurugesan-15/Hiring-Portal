@@ -1,5 +1,13 @@
 export type UserRole = 'super_admin' | 'admin' | 'hiring_manager' | 'interviewer';
 
+export interface OnboardingTask {
+  id: string;
+  name: string;
+  description: string;
+  completed: boolean;
+  icon?: string; // Storing icon name as string for persistence
+}
+
 export type CandidateStatus =
   | 'applied'
   | 'screening'
@@ -109,6 +117,10 @@ export interface Candidate {
   round2Recommendation?: string;
   screeningFeedback?: string;
   interviewStatus?: InterviewStatus;
+  onboardingStatus?: 'pending' | 'in_progress' | 'completed';
+  onboardingTasks?: OnboardingTask[];
+  department?: string;
+  reportingManager?: string;
 }
 
 export interface Interview {

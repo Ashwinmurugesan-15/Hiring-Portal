@@ -94,11 +94,9 @@ const positionTitleMap: Record<string, string> = {
     'ai-ml-intern': 'AI/ML Intern',
     'internship': 'Internship',
     'fresher': 'Fresher',
-    // Legacy demand IDs
-    '1': 'Senior DevOps Engineer',
-    '2': 'Full Stack Developer',
-    '3': 'Senior SRE',
-    '4': 'Data Engineer',
+    'senior-devops': 'Senior DevOps Engineer',
+    'full-stack': 'Full Stack Developer',
+    'data-engineer': 'Data Engineer',
 };
 
 interface CandidateTableProps {

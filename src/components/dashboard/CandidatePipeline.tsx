@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useRecruitment } from '@/context/RecruitmentContext';
 import { cn } from '@/lib/utils';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 
 const pipelineStages = [
   { key: 'applied', label: 'Applied', color: 'bg-info' },
@@ -13,7 +13,7 @@ const pipelineStages = [
 ];
 
 export const CandidatePipeline = () => {
-  const navigate = useNavigate();
+  const router = useRouter();
   const { candidates } = useRecruitment();
 
   const getCandidateCount = (stage: string) => {
@@ -23,7 +23,7 @@ export const CandidatePipeline = () => {
   const maxCount = Math.max(...pipelineStages.map((s) => getCandidateCount(s.key)));
 
   const handleStageClick = (stage: string) => {
-    navigate(`/candidates?status=${stage}`);
+    router.push(`/candidates?status=${stage}`);
   };
 
   return (

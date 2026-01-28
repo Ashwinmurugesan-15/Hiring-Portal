@@ -4,7 +4,22 @@ import { Check, ChevronRight, Circle } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
-const DropdownMenu = DropdownMenuPrimitive.Root;
+const DropdownMenu = (props: React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Root>) => {
+  const { onOpenChange, ...rest } = props;
+
+  const handleOpenChange = React.useCallback((open: boolean) => {
+    onOpenChange?.(open);
+    if (!open) {
+      // Force cleanup and body restoration
+      requestAnimationFrame(() => {
+        document.body.style.pointerEvents = 'auto';
+        document.body.style.overflow = 'auto';
+      });
+    }
+  }, [onOpenChange]);
+
+  return <DropdownMenuPrimitive.Root onOpenChange={handleOpenChange} {...rest} />;
+};
 
 const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger;
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Candidate, InterviewRound } from '@/types/recruitment';
 import { mockDemands } from '@/data/mockData';
 import {
@@ -55,7 +55,8 @@ export const ScheduleInterviewDialog = ({
   onOpenChange,
   onSchedule
 }: ScheduleInterviewDialogProps) => {
-  const { addInterview, emailTemplates } = useRecruitment();
+  const { addInterview, emailTemplates, sendEmail } = useRecruitment();
+  const [isSending, setIsSending] = useState(false);
   const [formData, setFormData] = useState({
     round: '1' as string,
     date: '',
@@ -65,6 +66,21 @@ export const ScheduleInterviewDialog = ({
   });
   const [emailSubject, setEmailSubject] = useState('');
   const [emailBody, setEmailBody] = useState('');
+
+  // Cleanup orphaned portal elements when dialog closes
+  useEffect(() => {
+    if (!open) {
+      const timer = setTimeout(() => {
+        // Find and remove any leftover radix portals
+        const portals = document.querySelectorAll('[data-radix-portal]');
+        portals.forEach(p => p.remove());
+        // Force restore body styles
+        document.body.style.pointerEvents = 'auto';
+        document.body.style.overflow = 'auto';
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [open]);
 
   if (!candidate) return null;
 
@@ -132,11 +148,11 @@ export const ScheduleInterviewDialog = ({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.date || !formData.time || !formData.interviewerName) {
-      toast.error('Please fill in all required fields');
+    if (!formData.date || !formData.time || !formData.meetLink) {
+      toast.error('Please fill in all required fields (Date, Time, and Meeting Link)');
       return;
     }
 
@@ -145,7 +161,7 @@ export const ScheduleInterviewDialog = ({
       round: parseInt(formData.round) as InterviewRound,
       date: formData.date,
       time: formData.time,
-      meetLink: formData.meetLink || `https://meet.google.com/${Math.random().toString(36).slice(2, 11)}`,
+      meetLink: formData.meetLink,
       interviewerName: formData.interviewerName,
     };
 
@@ -162,13 +178,34 @@ export const ScheduleInterviewDialog = ({
       scheduledAt,
       interviewerId: '4', // Default interviewer ID
       interviewerName: formData.interviewerName,
-      meetLink: scheduleData.meetLink,
+      meetLink: formData.meetLink,
       status: 'scheduled',
     });
 
-    onSchedule?.(scheduleData);
-    toast.success(`Interview scheduled for ${candidate.name}! View it in the Interviews page.`);
+    // Send email notification
+    setIsSending(true);
+    let emailSent = false;
 
+    if (candidate.email && emailSubject && emailBody) {
+      try {
+        const result = await sendEmail(candidate.email, emailSubject, emailBody.replace(/\n/g, '<br>'));
+        if (result.success) {
+          emailSent = true;
+          toast.success('Invitation email sent to candidate');
+        }
+      } catch (error) {
+        console.error('Failed to send interview email:', error);
+      }
+    } else {
+      console.warn('Cannot send email: Missing candidate email or template content');
+    }
+
+    setIsSending(false);
+
+    onSchedule?.(scheduleData);
+    toast.success(`Interview scheduled for ${candidate.name}!`);
+
+    // Close dialog
     onOpenChange(false);
 
     // Reset form
@@ -185,7 +222,7 @@ export const ScheduleInterviewDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>Schedule Interview</DialogTitle>
         </DialogHeader>
@@ -233,21 +270,21 @@ export const ScheduleInterviewDialog = ({
           </div>
 
           <div className="space-y-2">
-            <Label>Interviewer Name *</Label>
+            <Label>Interviewer Name</Label>
             <Input
               value={formData.interviewerName}
               onChange={(e) => handleFormChange('interviewerName', e.target.value)}
               placeholder="Enter interviewer name"
-              required
             />
           </div>
 
           <div className="space-y-2">
-            <Label>Meeting Link (Optional)</Label>
+            <Label>Meeting Link *</Label>
             <Input
               value={formData.meetLink}
               onChange={(e) => handleFormChange('meetLink', e.target.value)}
-              placeholder="Auto-generated if not provided"
+              placeholder="Paste meeting link here"
+              required
             />
           </div>
 
@@ -282,7 +319,9 @@ export const ScheduleInterviewDialog = ({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit">Schedule & Send Email</Button>
+            <Button type="submit" disabled={isSending}>
+              {isSending ? 'Sending...' : 'Schedule & Send Email'}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

@@ -28,6 +28,18 @@ export const Header = ({ title, onMenuClick }: HeaderProps) => {
     { value: 'interviewer', label: 'Interviewer', description: 'Conduct Interviews' },
   ];
 
+  const roleRanks: Record<UserRole, number> = {
+    super_admin: 4,
+    admin: 3,
+    hiring_manager: 2,
+    interviewer: 1,
+  };
+
+  const originalRole = user?.originalRole || user?.role || 'interviewer';
+  const userRank = roleRanks[originalRole];
+
+  const availableRoles = roles.filter(role => roleRanks[role.value] <= userRank);
+
   return (
     <header className="h-16 bg-card border-b border-border px-4 lg:px-6 flex items-center justify-between shadow-sm">
       <div className="flex items-center gap-4">
@@ -52,8 +64,8 @@ export const Header = ({ title, onMenuClick }: HeaderProps) => {
           />
         </div>
 
-        {/* Role Switcher - Only for Super Admin */}
-        {(user?.role === 'super_admin' || user?.permissions?.isSuperAdmin || user?.originalRole === 'super_admin') && (
+        {/* Role Switcher - Visible for roles with switching permissions (super_admin, admin, hiring_manager) */}
+        {availableRoles.length > 1 && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -67,7 +79,7 @@ export const Header = ({ title, onMenuClick }: HeaderProps) => {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              {roles.map(role => (
+              {availableRoles.map(role => (
                 <DropdownMenuItem
                   key={role.value}
                   onClick={() => switchRole(role.value)}

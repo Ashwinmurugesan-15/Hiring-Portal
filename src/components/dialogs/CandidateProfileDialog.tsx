@@ -1,6 +1,6 @@
 import { Candidate } from '@/types/recruitment';
 import { mockDemands } from '@/data/mockData';
-import { Mail, Phone, Briefcase, Calendar, DollarSign, MapPin, FileText, ArrowRight, X } from 'lucide-react';
+import { Mail, Phone, Briefcase, Calendar, DollarSign, MapPin, FileText, ArrowRight, X, Edit2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { StatusBadge } from '@/components/common/StatusBadge';
@@ -20,6 +20,7 @@ interface CandidateProfileDialogProps {
   onViewResume?: (candidate: Candidate) => void;
   onMoveForward?: (candidate: Candidate) => void;
   onReject?: (candidate: Candidate) => void;
+  onEdit?: (candidate: Candidate) => void;
 }
 
 export const CandidateProfileDialog = ({
@@ -28,7 +29,8 @@ export const CandidateProfileDialog = ({
   onOpenChange,
   onViewResume,
   onMoveForward,
-  onReject
+  onReject,
+  onEdit
 }: CandidateProfileDialogProps) => {
   if (!candidate) return null;
 
@@ -37,8 +39,19 @@ export const CandidateProfileDialog = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
+        <DialogHeader className="flex flex-row items-center justify-between pr-8 space-y-0">
           <DialogTitle>Candidate Profile</DialogTitle>
+          {onEdit && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 gap-2 text-muted-foreground hover:text-primary"
+              onClick={() => onEdit(candidate)}
+            >
+              <Edit2 className="h-4 w-4" />
+              <span className="text-xs">Edit</span>
+            </Button>
+          )}
         </DialogHeader>
         <div className="space-y-6 py-4">
           {/* Header */}

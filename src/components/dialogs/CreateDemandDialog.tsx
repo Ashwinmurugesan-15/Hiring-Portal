@@ -33,7 +33,7 @@ interface CreateDemandDialogProps {
 
 export const CreateDemandDialog = ({ open, onOpenChange, onCreate }: CreateDemandDialogProps) => {
   const { users } = useUsers();
-  const { emailTemplates } = useRecruitment();
+  const { emailTemplates, sendEmail } = useRecruitment();
   const [formData, setFormData] = useState({
     title: '',
     role: '',
@@ -100,9 +100,11 @@ A new job demand has been created...
         `;
       }
 
-      console.log(`Email sent to ${user.email}:`);
-      console.log(`Subject: ${emailSubject}`);
-      console.log(emailBody);
+      if (user.email) {
+        sendEmail(user.email, emailSubject, emailBody.replace(/\n/g, '<br>'))
+          .then(() => console.log(`Email sent to ${user.email}`))
+          .catch(err => console.error(`Failed to send email to ${user.email}`, err));
+      }
     });
 
     // Post to company career page

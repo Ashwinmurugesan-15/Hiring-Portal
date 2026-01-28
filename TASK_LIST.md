@@ -1,0 +1,22 @@
+# Task Checklist
+
+- [x] Unify Position and Demand ID mapping in mock data and components <!-- id: 0 -->
+- [x] Fix "Add Candidate" dialog to use new string IDs <!-- id: 1 -->
+- [x] Fix Data Persistence on Reload <!-- id: 5 -->
+    - [x] Update `db.json` to use unified string IDs (`senior-devops`, etc.)
+    - [x] Update `RecruitmentContext.tsx` to call API for feedback saves
+    - [x] Implement sync/save for all candidate updates
+- [x] Sync Offers page with recruitment statuses <!-- id: 6 -->
+- [x] Implement Candidate Edit Feature from Profile Dialog <!-- id: 7 -->
+- [x] Implement Email Functionality using Nodemailer <!-- id: 8 -->
+    - [x] Install dependencies
+    - [x] Create API route and utility
+    - [x] Integrate with RecruitmentContext
+    - [x] Connect to Rejection Dialog
+    - [x] Connect to Schedule Interview Dialog
+    - [x] Connect to Create Demand Dialog
+    - [x] Connect to Interview Reminder
+- [ ] Verify Fixes <!-- id: 3 -->
+    - [ ] Verify data persistence after page reload
+    - [ ] Verify unified IDs in `db.json`
+    - [ ] Verify candidates show on Offers page when status is 'Accepted' or 'Onboarding'

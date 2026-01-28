@@ -1,41 +1,28 @@
-# Candidate Table Enhancements & Profile Flow Update
+# Fix Build and Runtime Errors
 
-Enhance the candidate management experience by improving table usability, standardizing statuses, and streamlining the screening process.
+The project suffers from two main issues:
+1.  **Runtime Error**: `src/components/ui/sonner.tsx` uses `useTheme` but lacks the `'use client'` directive, causing it to fail when rendered as part of a layout.
+2.  **Build Error**: Conflict between `src/app` (App Router) and `src/pages` (Pages Router). The pages in `src/pages` fail because they expect context providers that only exist in the App Router's `layout.tsx`.
 
 ## Proposed Changes
 
-### [Recruitment Context & Types]
+### [Fixes]
 
-#### [MODIFY] [recruitment.ts](file:///d:/New%20folder/hireflow-portal/src/types/recruitment.ts)
-- Standardize `CandidateStatus` values.
-- Ensure `screeningFeedback` property is correctly typed.
+#### [MODIFY] [sonner.tsx](file:///d:/New%20folder/hireflow-portal/src/components/ui/sonner.tsx)
+Add `'use client'` at the top.
 
-#### [MODIFY] [RecruitmentContext.tsx](file:///d:/New%20folder/hireflow-portal/src/context/RecruitmentContext.tsx)
-- Implement `updateCandidateStatus` function to handle status transitions.
-- Ensure `saveScreeningFeedback` is robust.
+#### [MOVE] [src/pages](file:///d:/New%20folder/hireflow-portal/src/pages) to [src/legacy-pages](file:///d:/New%20folder/hireflow-portal/src/legacy-pages)
+Prevent Next.js from routing to these files.
 
-### [Candidate Table]
-
-#### [MODIFY] [CandidateTable.tsx](file:///d:/New%20folder/hireflow-portal/src/components/candidates/CandidateTable.tsx)
-- Implement sticky columns for the first three columns (Full Name, Email, Phone).
-- Replace static status text with an inline `Select` dropdown for quick status updates.
-- Ensure the "Initial Screening" column displays feedback and provides an edit trigger.
-
-### [Candidate Profile]
-
-#### [MODIFY] [CandidateProfileDialog.tsx](file:///d:/New%20folder/hireflow-portal/src/components/dialogs/CandidateProfileDialog.tsx)
-- Add "View Resume" action.
-- Add "Move Forward" and "Reject" buttons.
-- Implement logic to auto-transition status from "Applied" to "Proceed Further" on "Move Forward".
+#### [MODIFY] [src/app/*/page.tsx](file:///d:/New%20folder/hireflow-portal/src/app)
+Update imports from `@/pages/*` to `@/legacy-pages/*`.
 
 ## Verification Plan
 
 ### Automated Tests
-- N/A (No existing test suite mentioned, but will verify via manual browser testing).
+- Run `npm run build`
+- Run `npx tsc --noEmit`
 
 ### Manual Verification
-1.  **Sticky Columns**: Scroll horizontally in the Candidate Table and verify Name, Email, and Phone stay fixed.
-2.  **Inline Status**: Change a candidate's status via the dropdown in the table and verify it persists.
-3.  **Initial Screening**: Add/Edit feedback and verify it shows up in the new column.
-4.  **Profile Actions**: Open a profile, click "Move Forward", and verify the status updates automatically.
-5.  **View Resume**: Click "View Resume" and ensure it attempts to open the URL.
+- Verify the app renders without the `useTheme` error.
+- Verify navigation to all pages works.

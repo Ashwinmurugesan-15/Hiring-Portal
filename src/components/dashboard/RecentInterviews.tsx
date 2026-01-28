@@ -4,10 +4,10 @@ import { Button } from '@/components/ui/button';
 import { useRecruitment } from '@/context/RecruitmentContext';
 import { Video, Clock, ArrowRight } from 'lucide-react';
 import { format } from 'date-fns';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 
 export const RecentInterviews = () => {
-  const navigate = useNavigate();
+  const router = useRouter();
   const { interviews } = useRecruitment();
 
   const upcomingInterviews = interviews
@@ -16,7 +16,7 @@ export const RecentInterviews = () => {
     .slice(0, 4);
 
   const handleViewAll = () => {
-    navigate('/interviews');
+    router.push('/interviews');
   };
 
   return (
@@ -29,9 +29,9 @@ export const RecentInterviews = () => {
         </Button>
       </CardHeader>
       <CardContent className="space-y-4">
-        {upcomingInterviews.map((interview) => (
+        {upcomingInterviews.map((interview, index) => (
           <div
-            key={interview.id}
+            key={interview.id || `interview-${index}`}
             className="flex items-center gap-4 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
           >
             <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">

@@ -1,6 +1,8 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+'use client';
+
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Demand } from '@/types/recruitment';
-import { mockDemands } from '@/data/mockData';
+import { useAuth } from './AuthContext';
 
 interface DemandsContextType {
     demands: Demand[];
@@ -13,37 +15,91 @@ interface DemandsContextType {
 const DemandsContext = createContext<DemandsContextType | undefined>(undefined);
 
 export const DemandsProvider = ({ children }: { children: ReactNode }) => {
-    const [demands, setDemands] = useState<Demand[]>(mockDemands);
+    const [demands, setDemands] = useState<Demand[]>([]);
+    const { isAuthenticated } = useAuth();
 
-    const addDemand = (newDemand: Omit<Demand, 'id' | 'createdAt' | 'applicants' | 'interviewed' | 'offers'>) => {
-        const demand: Demand = {
-            ...newDemand,
-            id: String(demands.length + 1),
-            createdAt: new Date(),
+    useEffect(() => {
+        const fetchDemands = async () => {
+            if (!isAuthenticated) return;
+
+            console.log('Fetching demands...');
+            try {
+                const res = await fetch('/api/demands');
+                if (!res.ok) throw new Error(`API error: ${res.status}`);
+
+                const data = await res.json();
+                console.log('Fetched demands:', data.length);
+
+                setDemands(data.map((d: any) => ({
+                    ...d,
+                    createdAt: new Date(d.createdAt),
+                    reopenedAt: d.reopenedAt ? new Date(d.reopenedAt) : undefined
+                })));
+            } catch (error) {
+                console.error('Failed to fetch demands:', error);
+            }
+        };
+        fetchDemands();
+    }, [isAuthenticated]);
+
+    const addDemand = async (demand: Omit<Demand, 'id' | 'createdAt' | 'applicants' | 'interviewed' | 'offers'>) => {
+        const newDemandData = {
+            ...demand,
+            id: String(Date.now()),
+            createdAt: new Date().toISOString(),
             applicants: 0,
             interviewed: 0,
             offers: 0,
         };
-        setDemands((prev) => [demand, ...prev]);
+
+        try {
+            const res = await fetch('/api/demands', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newDemandData),
+            });
+            const savedDemand = await res.json();
+            setDemands((prev) => [{ ...savedDemand, createdAt: new Date(savedDemand.createdAt) }, ...prev]);
+        } catch (error) {
+            console.error('Failed to add demand:', error);
+        }
     };
 
-    const updateDemand = (updatedDemand: Demand) => {
-        setDemands((prev) => prev.map((d) => (d.id === updatedDemand.id ? updatedDemand : d)));
+    const updateDemand = async (updatedDemand: Demand) => {
+        try {
+            const res = await fetch('/api/demands/update', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updatedDemand),
+            });
+            const data = await res.json();
+            setDemands((prev) =>
+                prev.map((d) => (d.id === updatedDemand.id ? { ...data, createdAt: new Date(data.createdAt) } : d))
+            );
+        } catch (error) {
+            console.error('Failed to update demand:', error);
+        }
     };
 
-    const closeDemand = (id: string) => {
-        updateDemand({
-            ...demands.find((d) => d.id === id)!,
-            status: 'closed',
-        });
+    const closeDemand = async (id: string) => {
+        const demand = demands.find((d) => d.id === id);
+        if (demand) {
+            await updateDemand({
+                ...demand,
+                status: 'closed',
+            });
+        }
     };
 
     const reopenDemand = (id: string) => {
-        updateDemand({
-            ...demands.find((d) => d.id === id)!,
-            status: 'open',
-            reopenedAt: new Date(),
-        });
+        const demand = demands.find((d) => d.id === id);
+        if (demand) {
+            updateDemand({
+                ...demand,
+                status: 'open',
+                reopenedAt: new Date(),
+            });
+        }
     };
 
     return (
