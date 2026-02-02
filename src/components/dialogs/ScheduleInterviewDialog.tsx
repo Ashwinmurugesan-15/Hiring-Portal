@@ -22,6 +22,7 @@ import {
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { useRecruitment } from '@/context/RecruitmentContext';
+import { useDemands } from '@/context/DemandsContext';
 
 interface ScheduleInterviewDialogProps {
   candidate: Candidate | null;
@@ -56,6 +57,7 @@ export const ScheduleInterviewDialog = ({
   onSchedule
 }: ScheduleInterviewDialogProps) => {
   const { addInterview, emailTemplates, sendEmail } = useRecruitment();
+  const { demands } = useDemands();
   const [isSending, setIsSending] = useState(false);
   const [formData, setFormData] = useState({
     round: '1' as string,
@@ -63,6 +65,7 @@ export const ScheduleInterviewDialog = ({
     time: '',
     meetLink: '',
     interviewerName: '',
+    position: '',
   });
   const [emailSubject, setEmailSubject] = useState('');
   const [emailBody, setEmailBody] = useState('');
@@ -82,7 +85,7 @@ export const ScheduleInterviewDialog = ({
     }
   }, [open]);
 
-  if (!candidate) return null;
+  // if (!candidate) return null; // MOVED TO END
 
   // Position title map for new position IDs
   const positionTitleMap: Record<string, string> = {
@@ -101,13 +104,49 @@ export const ScheduleInterviewDialog = ({
     'fresher': 'Fresher',
   };
 
-  // Get position title from either new IDs or legacy mock demands
-  const demand = mockDemands.find(d => d.id === candidate.demandId);
-  const positionTitle = positionTitleMap[candidate.demandId] || demand?.title || candidate.demandId || 'Unknown Position';
+  // Position options matching CandidateFilters.tsx
+  const positionOptions = [
+    "Site Reliability Engineer",
+    "Senior Site Reliability Engineer",
+    "Lead Site Reliability Engineer",
+    "Application Site Reliability Engineer",
+    "Security Operations Centre Engineer",
+    "Performance Engineer",
+    "QA Automation Engineer (Playwright & Selenium)",
+    "DevOps Engineer",
+    "Lead SAP Engineer",
+    "AI/ML Engineer",
+    "AI/ML Intern",
+    "Internship",
+    "Fresher"
+  ];
 
-  // Update email template when round, date, time, or interviewer changes
-  const updateEmailTemplate = (round: string, date: string, time: string, interviewerName: string, meetLink: string) => {
-    if (!date || !time || !interviewerName) return;
+  // Get position title from either new IDs or legacy mock demands
+  const demandId = candidate?.demandId;
+  const demand = demandId ? mockDemands.find(d => d.id === demandId) : undefined;
+  const derivedPositionTitle = demandId
+    ? (positionTitleMap[demandId] || demand?.title || demandId || 'Unknown Position')
+    : '';
+
+  useEffect(() => {
+    if (open && candidate) {
+      setFormData({
+        round: '1',
+        date: '',
+        time: '',
+        meetLink: '',
+        interviewerName: '',
+        position: derivedPositionTitle
+      });
+      setEmailSubject('');
+      setEmailBody('');
+    }
+  }, [open, candidate, derivedPositionTitle]);
+
+  // Update email template when round, date, time, interviewer, or position changes
+  const updateEmailTemplate = (round: string, date: string, time: string, interviewerName: string, meetLink: string, position: string) => {
+    // Check debugging logs
+    console.log('UpdateEmailTemplate called with:', { position, date, time });
 
     const formattedDate = date ? format(new Date(date), 'MMMM d, yyyy') : '[Date]';
     const formattedTime = time || '[Time]';
@@ -118,13 +157,13 @@ export const ScheduleInterviewDialog = ({
 
     if (template) {
       const pData = {
-        'Candidate Name': candidate.name,
-        'Position': positionTitle,
+        'Candidate Name': candidate?.name || '',
+        'Position': position,
         'Date': formattedDate,
         'Time': formattedTime,
         'Interviewer': interviewerName,
         'Link': finalMeetLink,
-        'Resume Link': candidate.resumeUrl ? candidate.resumeUrl : 'Not provided',
+        'Resume Link': (candidate && candidate.resumeUrl) ? candidate.resumeUrl : 'Not provided',
       };
 
       setEmailSubject(replacePlaceholders(template.subject, pData));
@@ -137,19 +176,21 @@ export const ScheduleInterviewDialog = ({
     setFormData(newFormData);
 
     // Update email template when relevant fields change
-    if (['round', 'date', 'time', 'interviewerName', 'meetLink'].includes(field)) {
+    if (['round', 'date', 'time', 'interviewerName', 'meetLink', 'position'].includes(field)) {
       updateEmailTemplate(
         newFormData.round,
         newFormData.date,
         newFormData.time,
         newFormData.interviewerName,
-        newFormData.meetLink
+        newFormData.meetLink,
+        newFormData.position
       );
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!candidate) return;
 
     if (!formData.date || !formData.time || !formData.meetLink) {
       toast.error('Please fill in all required fields (Date, Time, and Meeting Link)');
@@ -173,7 +214,7 @@ export const ScheduleInterviewDialog = ({
       candidateId: candidate.id,
       candidateName: candidate.name,
       demandId: candidate.demandId,
-      demandTitle: positionTitle,
+      demandTitle: formData.position, // Use selected position
       round: parseInt(formData.round) as InterviewRound,
       scheduledAt,
       interviewerId: '4', // Default interviewer ID
@@ -215,10 +256,13 @@ export const ScheduleInterviewDialog = ({
       time: '',
       meetLink: '',
       interviewerName: '',
+      position: '',
     });
     setEmailSubject('');
     setEmailBody('');
   };
+
+  if (!candidate) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -229,7 +273,25 @@ export const ScheduleInterviewDialog = ({
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
           <div className="p-3 rounded-lg bg-muted/50 mb-4">
             <p className="font-medium">{candidate.name}</p>
-            <p className="text-sm text-muted-foreground">{positionTitle}</p>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Position</Label>
+            <Select
+              value={formData.position}
+              onValueChange={(value) => handleFormChange('position', value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select position" />
+              </SelectTrigger>
+              <SelectContent>
+                {positionOptions.map((position) => (
+                  <SelectItem key={position} value={position}>
+                    {position}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">

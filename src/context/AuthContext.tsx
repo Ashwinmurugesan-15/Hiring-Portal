@@ -31,6 +31,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
+      // Special handling for Demo User
+      if (session.user.email === 'demo@hireflow.com') {
+        console.log(`Initializing Demo User session`);
+        syncedEmailRef.current = session.user.email;
+        setUser({
+          id: 'demo-user',
+          name: 'Demo User',
+          email: 'demo@hireflow.com',
+          role: 'super_admin',
+          isActive: true,
+          permissions: {
+            isSuperAdmin: true, // This grants access to everything in Sidebar
+            canManageUsers: true,
+            features: {
+              dashboard: true,
+              demands: true,
+              demandRoles: true,
+              candidates: true,
+              interviews: true,
+              offers: true,
+              onboarding: true,
+              bench: true,
+              projects: true
+            }
+          },
+          originalRole: 'super_admin'
+        });
+        return;
+      }
+
       const foundUser = getUserByEmail(session.user.email);
       if (foundUser) {
         if (!foundUser.isActive) {

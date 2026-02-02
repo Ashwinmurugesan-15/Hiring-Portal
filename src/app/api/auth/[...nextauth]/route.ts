@@ -1,5 +1,6 @@
 import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
+import CredentialsProvider from "next-auth/providers/credentials";
 
 const handler = NextAuth({
     providers: [
@@ -7,17 +8,38 @@ const handler = NextAuth({
             clientId: process.env.GOOGLE_CLIENT_ID!,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
         }),
+        CredentialsProvider({
+            name: "Demo Login",
+            credentials: {
+                username: { label: "Username", type: "text" }
+            },
+            async authorize(credentials) {
+                if (credentials?.username === "demo") {
+                    return {
+                        id: "demo-user",
+                        name: "Demo User",
+                        email: "demo@hireflow.com",
+                        image: null,
+                        role: "super_admin"
+                    };
+                }
+                return null;
+            }
+        }),
     ],
     callbacks: {
         async signIn({ user, account, profile }) {
-            // Here you can check if the user exists in your database
-            // and allow/deny sign in.
             return true;
+        },
+        async jwt({ token, user }) {
+            if (user) {
+                token.role = user.role;
+            }
+            return token;
         },
         async session({ session, token }) {
             if (session.user) {
-                // Map Google data to internal user structure if needed
-                // session.user.role = 'user'; 
+                session.user.role = token.role as string;
             }
             return session;
         },

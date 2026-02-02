@@ -2,6 +2,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Bell, Search, Menu, Shield, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { ThemeToggle } from '@/components/common/ThemeToggle';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -97,6 +98,9 @@ export const Header = ({ title, onMenuClick }: HeaderProps) => {
             </DropdownMenuContent>
           </DropdownMenu>
         )}
+
+        {/* Theme Toggle */}
+        <ThemeToggle />
 
         {/* Notifications */}
         <DropdownMenu>

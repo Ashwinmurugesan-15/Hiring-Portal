@@ -36,6 +36,7 @@ import { DemandDetailsDialog } from '@/components/dialogs/DemandDetailsDialog';
 import { ConfirmDialog } from '@/components/dialogs/ConfirmDialog';
 import { DownloadReportsDialog } from '@/components/dialogs/DownloadReportsDialog';
 import { toast } from 'sonner';
+import SplitText from "@/components/ui/SplitText";
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -171,10 +172,22 @@ const Dashboard = () => {
         <div className="space-y-6 animate-fade-in">
           {/* Welcome Section */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+
+
             <div>
-              <h2 className="text-2xl font-bold text-foreground">
-                Good morning, {user?.name?.split(' ')[0]}!
-              </h2>
+              <SplitText
+                text={`Good morning, ${user?.name?.split(' ')[0]}!`}
+                className="text-2xl font-bold text-foreground"
+                delay={50}
+                duration={1.25}
+                ease="power3.out"
+                splitType="chars"
+                from={{ opacity: 0, y: 40 }}
+                to={{ opacity: 1, y: 0 }}
+                threshold={0.1}
+                rootMargin="-100px"
+                textAlign="left"
+              />
               <p className="text-muted-foreground mt-1">{getRoleGreeting()}</p>
             </div>
           </div>
@@ -271,9 +284,19 @@ const Dashboard = () => {
           {/* Welcome Section */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-bold text-foreground">
-                Good morning, {user?.name?.split(' ')[0]}! 👋
-              </h2>
+              <SplitText
+                text={`Good morning, ${user?.name?.split(' ')[0]}!`}
+                className="text-2xl font-bold text-foreground"
+                delay={50}
+                duration={1.25}
+                ease="power3.out"
+                splitType="chars"
+                from={{ opacity: 0, y: 40 }}
+                to={{ opacity: 1, y: 0 }}
+                threshold={0.1}
+                rootMargin="-100px"
+                textAlign="left"
+              />
               <p className="text-muted-foreground mt-1">{getRoleGreeting()}</p>
             </div>
             <div className="flex items-center gap-2">
@@ -446,9 +469,19 @@ const Dashboard = () => {
         {/* Welcome Section */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-bold text-foreground">
-              Good morning, {user?.name?.split(' ')[0]}! 👋
-            </h2>
+            <SplitText
+              text={`Good morning, ${user?.name?.split(' ')[0]}!`}
+              className="text-2xl font-bold text-foreground"
+              delay={50}
+              duration={1.25}
+              ease="power3.out"
+              splitType="chars"
+              from={{ opacity: 0, y: 40 }}
+              to={{ opacity: 1, y: 0 }}
+              threshold={0.1}
+              rootMargin="-100px"
+              textAlign="left"
+            />
             <p className="text-muted-foreground mt-1">{getRoleGreeting()}</p>
           </div>
           <div className="flex items-center gap-2">

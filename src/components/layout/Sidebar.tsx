@@ -115,19 +115,30 @@ export const Sidebar = () => {
       )}
     >
       {/* Logo */}
-      <div className="h-16 flex items-center justify-between px-4 border-b border-sidebar-border">
+      <div className="h-16 flex items-center justify-between px-4 border-b border-sidebar-border bg-sidebar-background">
         {!collapsed && (
-          <div className="flex items-center gap-2">
-            <Building2 className="h-8 w-8 text-sidebar-primary" />
-            <span className="font-bold text-lg text-sidebar-foreground">HireFlow</span>
+          <div className="flex items-center">
+            <img
+              src="/guhatek.png"
+              alt="GuhaTek"
+              className="h-14 w-auto object-contain brightness-0 invert"
+            />
           </div>
         )}
-        {collapsed && <Building2 className="h-8 w-8 text-sidebar-primary mx-auto" />}
+        {collapsed && (
+          <div className="flex items-center justify-center mx-auto">
+            <img
+              src="/guhatek.png"
+              alt="G"
+              className="h-10 w-10 object-contain brightness-0 invert"
+            />
+          </div>
+        )}
         <Button
           variant="ghost"
           size="icon"
           onClick={() => setCollapsed(!collapsed)}
-          className="text-sidebar-foreground hover:bg-sidebar-accent hidden lg:flex"
+          className="text-sidebar-foreground hover:bg-sidebar-accent hidden lg:flex ml-auto"
         >
           {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
         </Button>
@@ -189,15 +200,17 @@ export const Sidebar = () => {
               </div>
             </div>
             <div className="flex gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setSettingsOpen(true)}
-                className="flex-1 justify-start text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
-              >
-                <Settings className="h-4 w-4 mr-2" />
-                Settings
-              </Button>
+              {(user?.role === 'admin' || user?.role === 'super_admin') && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSettingsOpen(true)}
+                  className="flex-1 justify-start text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                >
+                  <Settings className="h-4 w-4 mr-2" />
+                  Settings
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="sm"
@@ -211,21 +224,23 @@ export const Sidebar = () => {
           </div>
         ) : (
           <div className="space-y-2">
-            <Tooltip delayDuration={0}>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setSettingsOpen(true)}
-                  className="w-full text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
-                >
-                  <Settings className="h-5 w-5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="right" className="bg-card text-card-foreground border">
-                Settings
-              </TooltipContent>
-            </Tooltip>
+            {(user?.role === 'admin' || user?.role === 'super_admin') && (
+              <Tooltip delayDuration={0}>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setSettingsOpen(true)}
+                    className="w-full text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                  >
+                    <Settings className="h-5 w-5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="bg-card text-card-foreground border">
+                  Settings
+                </TooltipContent>
+              </Tooltip>
+            )}
             <Tooltip delayDuration={0}>
               <TooltipTrigger asChild>
                 <Button
@@ -246,6 +261,6 @@ export const Sidebar = () => {
       </div>
 
       <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
-    </aside>
+    </aside >
   );
 };

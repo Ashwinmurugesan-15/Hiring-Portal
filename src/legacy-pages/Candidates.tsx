@@ -5,7 +5,7 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { mockCandidates, mockDemands } from '@/data/mockData';
 import { Candidate } from '@/types/recruitment';
 import { Button } from '@/components/ui/button';
-import { Download, Plus } from 'lucide-react';
+import { Download, Plus, Check } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -39,14 +39,17 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
+import { createCandidateAction, updateCandidateAction } from '@/app/candidates/actions';
 import { useRecruitment } from '@/context/RecruitmentContext';
 
 const Candidates = () => {
-  const { candidates, addCandidate, updateCandidate, updateCandidateStatus, saveScreeningFeedback, updateInterviewStatus } = useRecruitment();
+  const { candidates, addCandidate, updateCandidate, updateCandidateStatus, saveScreeningFeedback, updateInterviewStatus, deleteCandidate } = useRecruitment();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
-  // const [candidates, setCandidates] = useState<Candidate[]>(mockCandidates);
+
+  // File state for Guhatek API
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   // Parse query parameters
   const queryParams = searchParams;
@@ -120,7 +123,7 @@ const Candidates = () => {
     currentCompany: '',
     currentRole: '',
     skills: '',
-    source: 'career_portal' as const,
+    source: 'career_portal' as Candidate['source'],
     location: '',
     locationPreference: '',
     currentCTC: '',
@@ -129,6 +132,7 @@ const Candidates = () => {
     isServingNotice: false,
     isImmediateJoiner: false,
     linkedInProfile: '',
+    resumeUrl: '',
     hasOtherOffers: false,
     otherOfferCTC: '',
     certifications: '',
@@ -146,6 +150,18 @@ const Candidates = () => {
     if (np.toLowerCase().includes('immediate')) return 0;
     const match = np.match(/(\d+)/);
     return match ? parseInt(match[0]) : 0;
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Set the file in state for the API submission
+    setSelectedFile(file);
+
+    // For UI feedback, just set a fake URL or the file name
+    setNewCandidateData(prev => ({ ...prev, resumeUrl: URL.createObjectURL(file) }));
+    toast.success('File selected: ' + file.name);
   };
 
   // Filter Logic
@@ -179,9 +195,11 @@ const Candidates = () => {
           return false;
         }
       } else {
-        // By default (All), show everyone (including rejected)
-        // If the user wants to hide rejected, they should use a specific filter.
-        // This is more intuitive for "All".
+        // By default (All), HIDE rejected candidates.
+        // They should only be seen when "Rejected" filter is explicitly selected.
+        if (candidate.status === 'rejected' || candidate.round1Recommendation === 'reject' || candidate.round2Recommendation === 'reject') {
+          return false;
+        }
       }
 
       // Current Round filter from URL
@@ -265,7 +283,7 @@ const Candidates = () => {
           // Use a tolerance or exact match? Likely approximate bucket or exact match if data is clean.
           // Given the strict options "15 Days", "30 Days", assuming strict buckets.
           // But data might be "30 days" or "1 month".
-          // Let's use exact match logic on difference < 5 days tolerance? 
+          // Let's use exact match logic on difference < 5 days tolerance?
           // Or better, check if candidate ranges around the filter.
           // Simple approach: exact number match
           if (candDays !== filterDays) return false;
@@ -325,6 +343,7 @@ const Candidates = () => {
       isServingNotice: candidate.isServingNotice || false,
       isImmediateJoiner: candidate.isImmediateJoiner || false,
       linkedInProfile: candidate.linkedInProfile || '',
+      resumeUrl: candidate.resumeUrl || '',
       hasOtherOffers: candidate.hasOtherOffers || false,
       otherOfferCTC: candidate.otherOfferCTC || '',
       certifications: candidate.certifications ? candidate.certifications.join(', ') : '',
@@ -385,11 +404,23 @@ const Candidates = () => {
   };
 
   const handleAddCandidate = async () => {
+    // Validation
     if (!newCandidateData.name || !newCandidateData.email || !newCandidateData.demandId) {
-      toast.error('Please fill in required fields');
+      toast.error('Please fill in all required fields');
       return;
     }
 
+    if (!newCandidateData.phone || newCandidateData.phone.length !== 10) {
+      toast.error('Phone number must be exactly 10 digits');
+      return;
+    }
+
+    if (!isEditMode && !selectedFile) {
+      toast.error('Resume is required for new candidates');
+      return;
+    }
+
+    // Construct common data object
     const candidateData: Partial<Candidate> = {
       name: newCandidateData.name,
       email: newCandidateData.email,
@@ -408,29 +439,123 @@ const Candidates = () => {
       isServingNotice: newCandidateData.isServingNotice,
       isImmediateJoiner: newCandidateData.isImmediateJoiner,
       linkedInProfile: newCandidateData.linkedInProfile || '',
+      resumeUrl: newCandidateData.resumeUrl || '#',
       hasOtherOffers: newCandidateData.hasOtherOffers,
       otherOfferCTC: newCandidateData.otherOfferCTC || '',
       certifications: newCandidateData.certifications ? newCandidateData.certifications.split(',').map(s => s.trim()) : [],
       referredBy: newCandidateData.referredBy || '',
     };
 
-    if (isEditMode && selectedCandidate) {
-      await updateCandidate(selectedCandidate.id, candidateData);
-    } else {
-      const newCandidate: Candidate = {
-        ...candidateData as Required<Pick<Candidate, 'name' | 'email' | 'demandId'>>,
-        id: String(candidates.length + 1),
-        status: 'applied',
-        appliedAt: new Date(),
-        skills: candidateData.skills || [],
-        experience: candidateData.experience || '0 years',
-        source: candidateData.source || 'career_portal',
-      } as Candidate;
-      addCandidate(newCandidate);
-      toast.success('Candidate added successfully');
-    }
+    const toastId = toast.loading('Submitting application...');
 
-    handleCloseDialog();
+    try {
+      if (isEditMode && selectedCandidate) {
+        // UPDATE FLOW
+        const apiUpdates = {
+          fullName: newCandidateData.name,
+          email: newCandidateData.email,
+          contactNumber: newCandidateData.phone,
+          interestedPosition: getDemandTitle(newCandidateData.demandId),
+          currentRole: newCandidateData.currentRole,
+          currentOrganization: newCandidateData.currentCompany,
+          totalExperience: parseExperience(newCandidateData.experience || '0'),
+          currentLocation: newCandidateData.location,
+          locationPreference: newCandidateData.locationPreference,
+          currentCTC: parseInt(newCandidateData.currentCTC || '0'),
+          expectedCTC: parseInt(newCandidateData.expectedCTC || '0'),
+          noticePeriod: newCandidateData.noticePeriod,
+          currentlyInNotice: newCandidateData.isServingNotice,
+          immediateJoiner: newCandidateData.isImmediateJoiner,
+          linkedinProfile: newCandidateData.linkedInProfile,
+          otherOffersInHand: newCandidateData.hasOtherOffers,
+          certifications: newCandidateData.certifications,
+          referredBy: newCandidateData.referredBy,
+        };
+
+        const result = await updateCandidateAction(selectedCandidate.id, apiUpdates);
+
+        if (!result.success) {
+          throw new Error(result.error);
+        }
+
+        toast.dismiss(toastId);
+        toast.success('Candidate updated successfully via API');
+        // Optimistic local update
+        await updateCandidate(selectedCandidate.id, candidateData);
+        handleCloseDialog();
+
+      } else {
+        // INSERT FLOW
+        if (!selectedFile) {
+          toast.dismiss(toastId);
+          toast.error('File missing for new application');
+          return;
+        }
+
+        const apiData = {
+          fullName: newCandidateData.name,
+          email: newCandidateData.email,
+          contactNumber: newCandidateData.phone,
+          interestedPosition: getDemandTitle(newCandidateData.demandId),
+          status: 'Applied',
+          currentRole: newCandidateData.currentRole,
+          currentOrganization: newCandidateData.currentCompany,
+          totalExperience: parseExperience(newCandidateData.experience || '0'),
+          currentLocation: newCandidateData.location,
+          locationPreference: newCandidateData.locationPreference,
+          currentCTC: parseInt(newCandidateData.currentCTC || '0'),
+          expectedCTC: parseInt(newCandidateData.expectedCTC || '0'),
+          noticePeriod: newCandidateData.noticePeriod,
+          currentlyInNotice: newCandidateData.isServingNotice,
+          immediateJoiner: newCandidateData.isImmediateJoiner,
+          linkedinProfile: newCandidateData.linkedInProfile,
+          otherOffersInHand: newCandidateData.hasOtherOffers,
+          certifications: newCandidateData.certifications,
+          referredBy: newCandidateData.referredBy,
+        };
+
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        formData.append('applicationData', JSON.stringify(apiData));
+
+        const result = await createCandidateAction(formData);
+        if (!result.success) {
+          throw new Error(result.error);
+        }
+
+        // Success! Update local state
+        const newCandidate: Candidate = {
+          ...candidateData as Required<Pick<Candidate, 'name' | 'email' | 'demandId'>>,
+          id: result.id || String(candidates.length + 1),
+          status: 'applied',
+          appliedAt: new Date(),
+          skills: candidateData.skills || [],
+          experience: candidateData.experience || '0 years',
+          source: candidateData.source || 'career_portal',
+        } as Candidate;
+
+        addCandidate(newCandidate);
+        toast.dismiss(toastId);
+        toast.success('Application submitted successfully via Guhatek API');
+        handleCloseDialog();
+      }
+
+    } catch (error: any) {
+      console.error('Submission error:', error);
+      toast.dismiss(toastId);
+      toast.error('Failed to submit application: ' + error.message);
+    }
+  };
+
+  const handleDeleteCandidate = async (candidate: Candidate) => {
+    try {
+      if (confirm(`Are you sure you want to delete ${candidate.name}?`)) {
+        deleteCandidate(candidate.id);
+        setIsProfileOpen(false);
+      }
+    } catch (error: any) {
+      toast.error('Failed to delete candidate: ' + error.message);
+    }
   };
 
   const handleCloseDialog = () => {
@@ -445,7 +570,7 @@ const Candidates = () => {
       currentCompany: '',
       currentRole: '',
       skills: '',
-      source: 'career_portal' as const,
+      source: 'career_portal' as Candidate['source'],
       location: '',
       locationPreference: '',
       currentCTC: '',
@@ -454,11 +579,13 @@ const Candidates = () => {
       isServingNotice: false,
       isImmediateJoiner: false,
       linkedInProfile: '',
+      resumeUrl: '',
       hasOtherOffers: false,
       otherOfferCTC: '',
       certifications: '',
       referredBy: '',
     });
+    setSelectedFile(null);
   };
 
   // Dialog Handlers (reused)
@@ -534,10 +661,51 @@ const Candidates = () => {
           candidate={selectedCandidate}
           open={isProfileOpen}
           onOpenChange={setIsProfileOpen}
-          onViewResume={handleViewResume}
-          onMoveForward={handleMoveForward}
-          onReject={handleReject}
-          onEdit={handleEditCandidate}
+          onViewResume={(c) => {
+            setIsProfileOpen(false);
+            setSelectedCandidate(c);
+            setIsResumeOpen(true);
+          }}
+          onMoveForward={() => {
+            setIsProfileOpen(false);
+            setIsMoveForwardOpen(true);
+          }}
+          onReject={() => {
+            setIsProfileOpen(false);
+            setIsRejectOpen(true);
+          }}
+          onEdit={() => {
+            setIsProfileOpen(false);
+            setIsEditMode(true);
+            setIsAddCandidateOpen(true);
+            // Pre-fill form
+            setNewCandidateData({
+              // ... (existing pre-fill logic)
+              name: selectedCandidate?.name || '',
+              email: selectedCandidate?.email || '',
+              phone: selectedCandidate?.phone || '',
+              demandId: selectedCandidate?.demandId || '',
+              experience: selectedCandidate?.experience || '',
+              currentCompany: selectedCandidate?.currentCompany || '',
+              currentRole: selectedCandidate?.currentRole || '',
+              skills: (selectedCandidate?.skills || []).join(', '),
+              source: selectedCandidate?.source || 'career_portal',
+              location: selectedCandidate?.location || '',
+              locationPreference: selectedCandidate?.locationPreference || '',
+              currentCTC: String(selectedCandidate?.currentCTC || ''),
+              expectedCTC: String(selectedCandidate?.expectedCTC || ''),
+              noticePeriod: selectedCandidate?.noticePeriod || '',
+              isServingNotice: selectedCandidate?.isServingNotice || false,
+              isImmediateJoiner: selectedCandidate?.isImmediateJoiner || false,
+              linkedInProfile: selectedCandidate?.linkedInProfile || '',
+              resumeUrl: selectedCandidate?.resumeUrl || '',
+              hasOtherOffers: selectedCandidate?.hasOtherOffers || false,
+              otherOfferCTC: String(selectedCandidate?.otherOfferCTC || ''),
+              certifications: (selectedCandidate?.certifications || []).join(', '),
+              referredBy: selectedCandidate?.referredBy || '',
+            });
+          }}
+          onDelete={handleDeleteCandidate}
         />
 
         <ResumeDialog
@@ -605,11 +773,15 @@ const Candidates = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Phone</Label>
+                  <Label>Phone *</Label>
                   <Input
                     value={newCandidateData.phone}
-                    onChange={(e) => setNewCandidateData({ ...newCandidateData, phone: e.target.value })}
-                    placeholder="+91 98765 43210"
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                      setNewCandidateData({ ...newCandidateData, phone: val });
+                    }}
+                    placeholder="9876543210"
+                    maxLength={10}
                   />
                 </div>
                 <div className="space-y-2">
@@ -680,7 +852,9 @@ const Candidates = () => {
                 </div>
               </div>
 
-              {/* LinkedIn Profile */}
+
+
+              {/* LinkedIn & Resume */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>LinkedIn Profile</Label>
@@ -689,6 +863,20 @@ const Candidates = () => {
                     onChange={(e) => setNewCandidateData({ ...newCandidateData, linkedInProfile: e.target.value })}
                     placeholder="linkedin.com/in/username"
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label>Resume (PDF/DOC) *</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="file"
+                      accept=".pdf,.doc,.docx"
+                      onChange={handleFileUpload}
+                      className="cursor-pointer file:text-foreground"
+                    />
+                    {newCandidateData.resumeUrl && (
+                      <Check className="text-green-500 w-4 h-4" />
+                    )}
+                  </div>
                 </div>
               </div>
 

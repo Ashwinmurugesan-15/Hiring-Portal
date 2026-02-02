@@ -21,6 +21,7 @@ interface CandidateProfileDialogProps {
   onMoveForward?: (candidate: Candidate) => void;
   onReject?: (candidate: Candidate) => void;
   onEdit?: (candidate: Candidate) => void;
+  onDelete?: (candidate: Candidate) => void;
 }
 
 export const CandidateProfileDialog = ({
@@ -30,7 +31,8 @@ export const CandidateProfileDialog = ({
   onViewResume,
   onMoveForward,
   onReject,
-  onEdit
+  onEdit,
+  onDelete
 }: CandidateProfileDialogProps) => {
   if (!candidate) return null;
 
@@ -41,24 +43,41 @@ export const CandidateProfileDialog = ({
       <DialogContent className="sm:max-w-lg">
         <DialogHeader className="flex flex-row items-center justify-between pr-8 space-y-0">
           <DialogTitle>Candidate Profile</DialogTitle>
-          {onEdit && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 gap-2 text-muted-foreground hover:text-primary"
-              onClick={() => onEdit(candidate)}
-            >
-              <Edit2 className="h-4 w-4" />
-              <span className="text-xs">Edit</span>
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {onEdit && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 gap-2 text-muted-foreground hover:text-primary"
+                onClick={() => onEdit(candidate)}
+              >
+                <Edit2 className="h-4 w-4" />
+                <span className="text-xs">Edit</span>
+              </Button>
+            )}
+            {onDelete && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 gap-2 text-muted-foreground hover:text-destructive"
+                onClick={() => {
+                  if (confirm('Are you sure you want to delete this candidate? This action cannot be undone.')) {
+                    onDelete(candidate);
+                  }
+                }}
+              >
+                <X className="h-4 w-4" />
+                <span className="text-xs">Delete</span>
+              </Button>
+            )}
+          </div>
         </DialogHeader>
         <div className="space-y-6 py-4">
           {/* Header */}
           <div className="flex items-center gap-4">
             <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
               <span className="text-2xl font-bold text-primary">
-                {candidate.name.charAt(0)}
+                {(candidate.name || '').charAt(0)}
               </span>
             </div>
             <div>

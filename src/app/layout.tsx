@@ -9,6 +9,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { UsersProvider } from "@/context/UsersContext";
 
 import { Providers } from "@/components/providers/Providers";
+import { ThemeProvider } from "@/components/providers/ThemeProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -26,7 +27,14 @@ export default function RootLayout({
         <html lang="en" suppressHydrationWarning>
             <body className={inter.className}>
                 <Providers>
-                    {children}
+                    <ThemeProvider
+                        attribute="class"
+                        defaultTheme="system"
+                        enableSystem
+                        disableTransitionOnChange
+                    >
+                        {children}
+                    </ThemeProvider>
                 </Providers>
             </body>
         </html>

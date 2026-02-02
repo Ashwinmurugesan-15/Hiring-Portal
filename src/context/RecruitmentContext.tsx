@@ -23,6 +23,7 @@ interface RecruitmentContextType {
     updateCandidateOfferDetails: (candidateId: string, updates: Partial<Pick<Candidate, 'offeredCTC' | 'offeredPosition' | 'dateOfJoining' | 'status' | 'experience' | 'currentCompany'>>) => void;
     updateCandidateOnboardingTask: (candidateId: string, taskId: string, completed: boolean) => Promise<void>;
     updateCandidate: (candidateId: string, updates: Partial<Candidate>) => Promise<void>;
+    deleteCandidate: (candidateId: string) => void;
     sendEmail: (to: string, subject: string, html: string) => Promise<{ success: boolean; error?: any }>;
     emailTemplates: EmailTemplate[];
     updateEmailTemplate: (templateId: string, updates: Partial<EmailTemplate>) => void;
@@ -42,9 +43,11 @@ export const RecruitmentProvider = ({ children }: { children: ReactNode }) => {
 
             console.log('Fetching recruitment data...');
             try {
-                const [candRes, intRes] = await Promise.all([
+                // Fetch external applicants alongside internal data
+                const [candRes, intRes, extAppRes] = await Promise.all([
                     fetch('/api/candidates'),
-                    fetch('/api/interviews')
+                    fetch('/api/interviews'),
+                    fetch('/api/integrations/applicants')
                 ]);
 
                 if (!candRes.ok || !intRes.ok) {
@@ -54,14 +57,45 @@ export const RecruitmentProvider = ({ children }: { children: ReactNode }) => {
                 const cands = await candRes.json();
                 const ints = await intRes.json();
 
+                // Process external applicants
+                let externalCandidates: any[] = [];
+                if (extAppRes.ok) {
+                    const extApps = await extAppRes.json();
+                    externalCandidates = extApps.map((app: any) => ({
+                        id: `ext-${app.id}`, // Prefix ID to avoid collision
+                        name: app.name,
+                        email: app.email,
+                        phone: app.phone,
+                        role: app.role, // Map to display role
+                        status: app.status === 'Applied' ? 'applied' : 'interview_scheduled', // Map to valid status key
+                        appliedAt: new Date(app.applied_at),
+                        skills: [app.role], // Default skill from role
+                        experience: 'External', // Placeholder
+                        location: 'Remote', // Placeholder
+                        source: 'GuhaTek Careers',
+                        resumeLink: app.resume_url,
+                        currentRound: 1,
+                        interviewStatus: 'pending'
+                    }));
+                } else {
+                    console.warn('Failed to fetch external applicants');
+                }
+
                 console.log('Fetched candidates:', cands.length);
                 console.log('Fetched interviews:', ints.length);
+                console.log('Fetched external applicants:', externalCandidates.length);
 
-                setCandidates(cands.map((c: any) => ({
-                    ...c,
-                    appliedAt: new Date(c.appliedAt),
-                    dateOfJoining: c.dateOfJoining ? new Date(c.dateOfJoining) : undefined
-                })));
+                // Merge internal and external candidates
+                const allCandidates = [
+                    ...cands.map((c: any) => ({
+                        ...c,
+                        appliedAt: new Date(c.appliedAt),
+                        dateOfJoining: c.dateOfJoining ? new Date(c.dateOfJoining) : undefined
+                    })),
+                    ...externalCandidates
+                ];
+
+                setCandidates(allCandidates);
                 setInterviews(ints.map((i: any) => ({
                     ...i,
                     scheduledAt: new Date(i.scheduledAt)
@@ -578,6 +612,11 @@ Note: This is an automated email from HireFlow.`
         }
     };
 
+    const deleteCandidate = (candidateId: string) => {
+        setCandidates((prev) => prev.filter((c) => c.id !== candidateId));
+        toast.success('Candidate removed from view');
+    };
+
     const sendEmail = async (to: string, subject: string, html: string) => {
         try {
             const res = await fetch('/api/email/send', {
@@ -631,6 +670,7 @@ Note: This is an automated email from HireFlow.`
             updateCandidateOfferDetails,
             updateCandidateOnboardingTask,
             updateCandidate,
+            deleteCandidate,
             sendEmail,
             emailTemplates,
             updateEmailTemplate

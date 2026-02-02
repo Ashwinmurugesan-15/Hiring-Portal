@@ -14,41 +14,75 @@ Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PRO
 
 Changes made via Lovable will be committed automatically to this repo.
 
-**Use your preferred IDE**
+# HireFlow Portal
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+A modern recruitment management portal built with Next.js, React, Tailwind CSS, and Shadcn UI.
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+## Getting Started
 
-Follow these steps:
+### Prerequisites
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+- **Node.js**: Version 18.17 or later (Recommended: LTS)
+- **npm**: Comes with Node.js
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+### Installation
 
-# Step 3: Install the necessary dependencies.
-npm i
+1.  **Clone the repository** (if you haven't already).
+2.  **Install dependencies**:
+    ```bash
+    npm install
+    # or
+    npm install --legacy-peer-deps
+    ```
+    *(Note: Use `--legacy-peer-deps` if you encounter dependency conflicts).*
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+### Configuration
+
+1.  Create a `.env` file in the root directory (based on `.env.example`).
+2.  Add your own credentials:
+    ```env
+    # Google OAuth (for Login)
+    GOOGLE_CLIENT_ID=your_client_id
+    GOOGLE_CLIENT_SECRET=your_client_secret
+
+    # NextAuth
+    NEXTAUTH_SECRET=your_secret_key
+    NEXTAUTH_URL=http://localhost:3000
+
+    # Email (for Notifications)
+    EMAIL_USER=your_email@gmail.com
+    EMAIL_PASS=your_app_password
+    ```
+
+### Running Development Server
+
+To start the local development server:
+
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Building for Production
 
-**Use GitHub Codespaces**
+To create an optimized production build:
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+```bash
+npm run build
+```
+
+Then start the production server:
+
+```bash
+npm start
+```
+
+## Features
+- **Dashboard**: Overview of recruitment demands, stats, and upcoming interviews.
+- **Candidates**: Manage candidate profiles, status, and filtering.
+- **Interviews**: Schedule and view interview details.
+- **Role-based Access**: Different views for Interviewers, Hiring Managers, and Admins.
 
 ## What technologies are used for this project?
 

@@ -2,8 +2,9 @@ import { Demand } from '@/types/recruitment';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MapPin, Users, Calendar, MoreHorizontal } from 'lucide-react';
+import { MapPin, Users, Calendar, MoreHorizontal, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -105,6 +106,20 @@ export const DemandCard = ({ demand, onViewDetails, onEdit, onClose, onReopen, o
           )}
         </div>
 
+        {/* Dates */}
+        <div className="flex flex-col gap-1 mb-4 text-xs text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <Clock className="h-3 w-3" />
+            <span>Created: {format(new Date(demand.createdAt), 'MMM d, yyyy h:mm a')}</span>
+          </div>
+          {demand.reopenedAt && (
+            <div className="flex items-center gap-2">
+              <Clock className="h-3 w-3" />
+              <span>Reopened: {format(new Date(demand.reopenedAt), 'MMM d, yyyy h:mm a')}</span>
+            </div>
+          )}
+        </div>
+
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4 pt-4 border-t border-border">
           <div className="text-center cursor-pointer hover:text-primary transition-colors" onClick={(e) => {
@@ -131,7 +146,7 @@ export const DemandCard = ({ demand, onViewDetails, onEdit, onClose, onReopen, o
             e.stopPropagation();
             onViewOffers?.();
           }}>
-            <p className="text-lg font-semibold text-accent">{demand.offers}</p>
+            <p className="text-lg font-semibold text-foreground">{demand.offers}</p>
             <p className="text-xs text-muted-foreground">Offers</p>
           </div>
         </div>

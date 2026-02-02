@@ -291,7 +291,9 @@ export function CandidateTable({
                                 onClick={() => onViewCandidate(candidate)}
                             >
                                 <td className="w-12 p-2 align-middle sticky left-0 z-20 !bg-card border-b border-border group-hover/row:!bg-muted shadow-[1px_0_0_0_rgba(0,0,0,0.1)] text-center">
-                                    <span className="text-sm font-medium text-primary">{candidate.id}</span>
+                                    <span className="text-sm font-medium text-primary" title={candidate.id}>
+                                        {candidate.id.substring(0, 8)}...
+                                    </span>
                                 </td>
                                 {visibleColumns.map(column => {
                                     const isSticky = ['name', 'email', 'phone'].includes(column.key);
@@ -317,27 +319,27 @@ export function CandidateTable({
                                             {column.key === 'name' && (() => {
                                                 // Status color map for name column
                                                 const statusTextColors: Record<string, string> = {
-                                                    applied: 'text-info',
-                                                    screening: 'text-warning',
-                                                    interview_scheduled: 'text-blue-600',
-                                                    interview_completed: 'text-slate-600',
-                                                    selected: 'text-success',
-                                                    rejected: 'text-destructive',
-                                                    offer_rolled: 'text-accent',
-                                                    offer_accepted: 'text-indigo-600',
-                                                    offer_rejected: 'text-rose-600',
-                                                    onboarding: 'text-info',
-                                                    onboarded: 'text-success',
+                                                    applied: 'text-blue-700',
+                                                    screening: 'text-amber-700',
+                                                    interview_scheduled: 'text-blue-800',
+                                                    interview_completed: 'text-slate-700',
+                                                    selected: 'text-green-700',
+                                                    rejected: 'text-red-700',
+                                                    offer_rolled: 'text-purple-700',
+                                                    offer_accepted: 'text-indigo-800',
+                                                    offer_rejected: 'text-rose-800',
+                                                    onboarding: 'text-cyan-700',
+                                                    onboarded: 'text-emerald-800',
                                                 };
                                                 const nameColor = statusTextColors[candidate.status] || 'text-foreground';
                                                 return (
                                                     <div className="flex items-center gap-3">
                                                         <Avatar className="w-9 h-9">
                                                             <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
-                                                                {candidate.name.split(' ').map(n => n[0]).join('')}
+                                                                {(candidate.name || 'Unknown').split(' ').map((n: string) => n[0]).join('')}
                                                             </AvatarFallback>
                                                         </Avatar>
-                                                        <span className={cn("font-medium text-sm", nameColor)}>{candidate.name}</span>
+                                                        <span className={cn("font-bold text-sm", nameColor)}>{candidate.name}</span>
                                                     </div>
                                                 );
                                             })()}
