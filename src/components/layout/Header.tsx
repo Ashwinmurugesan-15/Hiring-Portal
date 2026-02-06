@@ -1,5 +1,6 @@
 import { useAuth } from '@/context/AuthContext';
-import { Bell, Search, Menu, Shield, ChevronDown } from 'lucide-react';
+import { BellRing, Search, Menu, Shield, ChevronDown } from 'lucide-react';
+import { AnimateIcon } from '@/components/ui/AnimateIcon';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ThemeToggle } from '@/components/common/ThemeToggle';
@@ -105,9 +106,11 @@ export const Header = ({ title, onMenuClick }: HeaderProps) => {
         {/* Notifications */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="h-5 w-5" />
-              <span className="absolute top-1 right-1 h-2 w-2 bg-destructive rounded-full" />
+            <Button variant="ghost" size="icon" className="relative group">
+              <AnimateIcon animateOnHover>
+                <BellRing className="h-5 w-5" />
+              </AnimateIcon>
+              <span className="absolute top-2 right-2 h-2 w-2 bg-destructive rounded-full" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-80 bg-popover">

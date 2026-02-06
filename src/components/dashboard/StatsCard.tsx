@@ -1,7 +1,10 @@
+'use client';
+
 import { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { TrendingUp, TrendingDown } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface StatsCardProps {
   title: string;
@@ -44,45 +47,47 @@ export const StatsCard = ({
   onClick,
 }: StatsCardProps) => {
   return (
-    <Card 
+    <Card
       className={cn(
-        'border shadow-card transition-all hover:shadow-md', 
+        'border shadow-card transition-all hover:shadow-md group',
         variantStyles[variant],
         onClick && 'cursor-pointer hover:scale-[1.02]'
       )}
       onClick={onClick}
     >
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between">
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <div className="flex items-baseline gap-2">
-              <h3 className="text-3xl font-bold text-foreground">{value}</h3>
-              {trend && (
-                <span
-                  className={cn(
-                    'flex items-center text-sm font-medium',
-                    trend.isPositive ? 'text-success' : 'text-destructive'
-                  )}
-                >
-                  {trend.isPositive ? (
-                    <TrendingUp className="h-4 w-4 mr-1" />
-                  ) : (
-                    <TrendingDown className="h-4 w-4 mr-1" />
-                  )}
-                  {trend.value}%
-                </span>
+      <motion.div initial="rest" whileHover="hover" animate="rest">
+        <CardContent className="p-6">
+          <div className="flex items-start justify-between">
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-muted-foreground">{title}</p>
+              <div className="flex items-baseline gap-2">
+                <h3 className="text-3xl font-bold text-foreground">{value}</h3>
+                {trend && (
+                  <span
+                    className={cn(
+                      'flex items-center text-sm font-medium',
+                      trend.isPositive ? 'text-success' : 'text-destructive'
+                    )}
+                  >
+                    {trend.isPositive ? (
+                      <TrendingUp className="h-4 w-4 mr-1" />
+                    ) : (
+                      <TrendingDown className="h-4 w-4 mr-1" />
+                    )}
+                    {trend.value}%
+                  </span>
+                )}
+              </div>
+              {description && (
+                <p className="text-sm text-muted-foreground">{description}</p>
               )}
             </div>
-            {description && (
-              <p className="text-sm text-muted-foreground">{description}</p>
-            )}
+            <div className={cn('p-3 rounded-xl', iconStyles[variant])}>
+              {icon}
+            </div>
           </div>
-          <div className={cn('p-3 rounded-xl', iconStyles[variant])}>
-            {icon}
-          </div>
-        </div>
-      </CardContent>
+        </CardContent>
+      </motion.div>
     </Card>
   );
 };

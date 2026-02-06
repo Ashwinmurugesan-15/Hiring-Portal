@@ -220,4 +220,72 @@
       transform: scale(1);
     }
   }
+
+  @keyframes ring {
+    0% {
+      transform: rotate(0deg);
+    }
+
+    10% {
+      transform: rotate(10deg);
+    }
+
+    30% {
+      transform: rotate(-10deg);
+    }
+
+    50% {
+      transform: rotate(5deg);
+    }
+
+    70% {
+      transform: rotate(-5deg);
+    }
+
+    90% {
+      transform: rotate(2deg);
+    }
+
+    100% {
+      transform: rotate(0deg);
+    }
+  }
+
+  .hover-ring:hover,
+  .group:hover .hover-ring {
+    animation: ring 0.5s ease-in-out;
+    transform-origin: top center;
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .hover-spin:hover,
+  .group:hover .hover-spin {
+    animation: spin 2s linear infinite;
+  }
+
+  @keyframes bounce {
+
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+
+    50% {
+      transform: translateY(-3px);
+    }
+  }
+
+  .hover-bounce:hover,
+  .group:hover .hover-bounce {
+    animation: bounce 0.6s infinite;
+  }
 }

@@ -1,15 +1,18 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
 import { Candidate, BenchResource, Interview, EmailTemplate } from '@/types/recruitment';
 import { mockBenchResources } from '@/data/mockData';
 import { toast } from 'sonner';
 import { useAuth } from './AuthContext';
+import { getFilteredCandidatesForUser, getFilteredInterviewsForUser } from '@/utils/candidateFilters';
 
 interface RecruitmentContextType {
     candidates: Candidate[];
+    filteredCandidates: Candidate[];
     benchResources: BenchResource[];
     interviews: Interview[];
+    filteredInterviews: Interview[];
     updateCandidateStatus: (candidateId: string, status: Candidate['status']) => void;
     updateCandidateFeedback: (candidateId: string, round: 1 | 2, recommendation: string) => void;
     addCandidate: (candidate: Candidate) => void;
@@ -35,7 +38,17 @@ export const RecruitmentProvider = ({ children }: { children: ReactNode }) => {
     const [candidates, setCandidates] = useState<Candidate[]>([]);
     const [benchResources, setBenchResources] = useState<BenchResource[]>(mockBenchResources);
     const [interviews, setInterviews] = useState<Interview[]>([]);
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, user } = useAuth();
+
+    // Compute filtered candidates based on user role and email
+    const filteredCandidates = useMemo(() => {
+        return getFilteredCandidatesForUser(candidates, interviews, user);
+    }, [candidates, interviews, user]);
+
+    // Compute filtered interviews based on user role and email
+    const filteredInterviews = useMemo(() => {
+        return getFilteredInterviewsForUser(interviews, user);
+    }, [interviews, user]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -655,8 +668,10 @@ Note: This is an automated email from HireFlow.`
     return (
         <RecruitmentContext.Provider value={{
             candidates,
+            filteredCandidates,
             benchResources,
             interviews,
+            filteredInterviews,
             updateCandidateStatus,
             updateCandidateFeedback,
             addCandidate,

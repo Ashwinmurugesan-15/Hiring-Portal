@@ -43,7 +43,7 @@ import { createCandidateAction, updateCandidateAction } from '@/app/candidates/a
 import { useRecruitment } from '@/context/RecruitmentContext';
 
 const Candidates = () => {
-  const { candidates, addCandidate, updateCandidate, updateCandidateStatus, saveScreeningFeedback, updateInterviewStatus, deleteCandidate } = useRecruitment();
+  const { filteredCandidates: candidates, addCandidate, updateCandidate, updateCandidateStatus, saveScreeningFeedback, updateInterviewStatus, deleteCandidate } = useRecruitment();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();

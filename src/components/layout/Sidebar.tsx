@@ -29,6 +29,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { SettingsDialog } from '@/components/dialogs/SettingsDialog';
+import { AnimateIcon } from '@/components/ui/AnimateIcon';
 
 interface NavItem {
   icon: React.ElementType;
@@ -205,9 +206,11 @@ export const Sidebar = () => {
                   variant="ghost"
                   size="sm"
                   onClick={() => setSettingsOpen(true)}
-                  className="flex-1 justify-start text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                  className="flex-1 justify-start text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent group"
                 >
-                  <Settings className="h-4 w-4 mr-2" />
+                  <AnimateIcon animateOnHover animation="spin" className="mr-2">
+                    <Settings className="h-4 w-4" />
+                  </AnimateIcon>
                   Settings
                 </Button>
               )}
@@ -231,9 +234,11 @@ export const Sidebar = () => {
                     variant="ghost"
                     size="icon"
                     onClick={() => setSettingsOpen(true)}
-                    className="w-full text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                    className="w-full text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent group"
                   >
-                    <Settings className="h-5 w-5" />
+                    <AnimateIcon animateOnHover animation="spin">
+                      <Settings className="h-5 w-5" />
+                    </AnimateIcon>
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="right" className="bg-card text-card-foreground border">

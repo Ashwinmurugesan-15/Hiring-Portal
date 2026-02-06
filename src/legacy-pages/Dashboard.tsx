@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -27,6 +27,8 @@ import {
   XCircle,
   Download,
 } from 'lucide-react';
+import { ClipboardCheck } from '@/components/ui/ClipboardCheck';
+import { Users as AnimatedUsers } from '@/components/ui/Users';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -37,6 +39,7 @@ import { ConfirmDialog } from '@/components/dialogs/ConfirmDialog';
 import { DownloadReportsDialog } from '@/components/dialogs/DownloadReportsDialog';
 import { toast } from 'sonner';
 import SplitText from "@/components/ui/SplitText";
+import { AnimateIcon } from '@/components/ui/AnimateIcon';
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -46,7 +49,7 @@ const Dashboard = () => {
   const { demands, addDemand, updateDemand, closeDemand, reopenDemand } = useDemands();
   // const [demands, setDemands] = useState(mockDemands); // Removed local state
 
-  const { candidates, interviews } = useRecruitment();
+  const { filteredCandidates: candidates, filteredInterviews: interviews } = useRecruitment();
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedDemand, setSelectedDemand] = useState<Demand | null>(null);
@@ -135,9 +138,20 @@ const Dashboard = () => {
     }
   };
 
+  const [greeting, setGreeting] = useState('');
+
   const handleCreateDemand = (newDemand: Omit<Demand, 'id' | 'createdAt' | 'applicants' | 'interviewed' | 'offers'>) => {
     addDemand(newDemand);
   };
+
+  useEffect(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) setGreeting('Good morning');
+    else if (hour < 18) setGreeting('Good afternoon');
+    else setGreeting('Good evening');
+  }, []);
+
+
 
   const handleViewDetails = (demand: Demand) => {
     setSelectedDemand(demand);
@@ -176,10 +190,10 @@ const Dashboard = () => {
 
             <div>
               <SplitText
-                text={`Good morning, ${user?.name?.split(' ')[0]}!`}
+                text={`${greeting || 'Welcome'}, ${user?.name?.split(' ')[0]}!`}
                 className="text-2xl font-bold text-foreground"
-                delay={50}
-                duration={1.25}
+                delay={5}
+                duration={0.2}
                 ease="power3.out"
                 splitType="chars"
                 from={{ opacity: 0, y: 40 }}
@@ -285,10 +299,10 @@ const Dashboard = () => {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <SplitText
-                text={`Good morning, ${user?.name?.split(' ')[0]}!`}
+                text={`${greeting || 'Welcome'}, ${user?.name?.split(' ')[0]}!`}
                 className="text-2xl font-bold text-foreground"
-                delay={50}
-                duration={1.25}
+                delay={5}
+                duration={0.2}
                 ease="power3.out"
                 splitType="chars"
                 from={{ opacity: 0, y: 40 }}
@@ -470,7 +484,7 @@ const Dashboard = () => {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <SplitText
-              text={`Good morning, ${user?.name?.split(' ')[0]}!`}
+              text={`${greeting || 'Welcome'}, ${user?.name?.split(' ')[0]}!`}
               className="text-2xl font-bold text-foreground"
               delay={50}
               duration={1.25}
@@ -485,8 +499,10 @@ const Dashboard = () => {
             <p className="text-muted-foreground mt-1">{getRoleGreeting()}</p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => setIsDownloadOpen(true)}>
-              <Download className="mr-2 h-4 w-4" />
+            <Button variant="outline" size="sm" onClick={() => setIsDownloadOpen(true)} className="group">
+              <AnimateIcon animateOnHover animation="bounce" className="mr-2">
+                <Download className="h-4 w-4" />
+              </AnimateIcon>
               All Reports Download
             </Button>
             {(user?.role === 'super_admin') && (
@@ -513,7 +529,7 @@ const Dashboard = () => {
           <StatsCard
             title="Candidates Selected"
             value={candidates.filter(c => c.status === 'selected').length}
-            icon={<CheckCircle2 className="h-5 w-5" />}
+            icon={<ClipboardCheck animateOnHover className="h-5 w-5" />}
             variant="success"
           />
           <StatsCard
@@ -543,7 +559,7 @@ const Dashboard = () => {
           <StatsCard
             title="Bench Strength"
             value={mockBenchResources.length}
-            icon={<Users2 className="h-5 w-5" />}
+            icon={<AnimatedUsers animateOnHover className="h-5 w-5" />}
             variant="accent"
           />
           <StatsCard

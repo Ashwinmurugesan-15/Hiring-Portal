@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Candidate } from '@/types/recruitment';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -132,8 +132,61 @@ export function CandidateTable({
     const [selectedCandidates, setSelectedCandidates] = useState<string[]>([]);
     const [sortColumn, setSortColumn] = useState<string>('appliedAt');
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+    const [currentPage, setCurrentPage] = useState(1);
+
+    // Refs for synchronized scrolling
+    const topScrollRef = useRef<HTMLDivElement>(null);
+    const tableContainerRef = useRef<HTMLDivElement>(null);
+    const [tableWidth, setTableWidth] = useState(0);
+
+    // Reset page when candidates list changes (filtering)
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [candidates]);
+
+    // Synchronize scrolling and handle resize
+    useEffect(() => {
+        const topScroll = topScrollRef.current;
+        const tableContainer = tableContainerRef.current;
+
+        if (!topScroll || !tableContainer) return;
+
+        const handleTopScroll = () => {
+            if (tableContainer) tableContainer.scrollLeft = topScroll.scrollLeft;
+        };
+
+        const handleTableScroll = () => {
+            if (topScroll) topScroll.scrollLeft = tableContainer.scrollLeft;
+        };
+
+        topScroll.addEventListener('scroll', handleTopScroll);
+        tableContainer.addEventListener('scroll', handleTableScroll);
+
+        // Resize observer to keep widths in sync
+        const resizeObserver = new ResizeObserver((entries) => {
+            for (const entry of entries) {
+                if (entry.target === tableContainer) {
+                    setTableWidth(tableContainer.scrollWidth);
+                    // Also sync visible width
+                    if (topScroll) topScroll.style.width = `${tableContainer.clientWidth}px`;
+                }
+            }
+        });
+
+        resizeObserver.observe(tableContainer);
+        // Initial setup
+        setTableWidth(tableContainer.scrollWidth);
+        topScroll.style.width = `${tableContainer.clientWidth}px`;
+
+        return () => {
+            topScroll.removeEventListener('scroll', handleTopScroll);
+            tableContainer.removeEventListener('scroll', handleTableScroll);
+            resizeObserver.disconnect();
+        };
+    }, []);
 
     const visibleColumns = columns.filter(col => col.visible);
+
 
     const toggleColumn = (key: string) => {
         setColumns(cols =>
@@ -241,8 +294,20 @@ export function CandidateTable({
                 </DropdownMenu>
             </div>
 
+            {/* Top Scrollbar (Synchronized) */}
+            <div
+                ref={topScrollRef}
+                className="overflow-x-auto mb-1"
+                style={{ height: '12px' }}
+            >
+                <div style={{ width: `${tableWidth}px`, height: '1px' }} />
+            </div>
+
             {/* Table */}
-            <div className="overflow-x-auto relative">
+            <div
+                ref={tableContainerRef}
+                className="overflow-x-auto relative"
+            >
                 <table className="w-full border-separate border-spacing-0">
                     <thead>
                         <tr className="border-b border-border bg-muted/50">
@@ -253,11 +318,11 @@ export function CandidateTable({
                                 const isSticky = ['name', 'email', 'phone'].includes(column.key);
                                 let stickyClass = '';
                                 if (column.key === 'name') stickyClass = 'sticky left-[56px] z-30 bg-muted border-b border-border';
-                                if (column.key === 'email') stickyClass = 'sticky left-[256px] z-30 bg-muted border-b border-border';
-                                if (column.key === 'phone') stickyClass = 'sticky left-[456px] z-30 bg-muted border-b border-border shadow-[2px_0_0_0_rgba(0,0,0,0.1)]';
+                                if (column.key === 'email') stickyClass = 'sticky left-[196px] z-30 bg-muted border-b border-border';
+                                if (column.key === 'phone') stickyClass = 'sticky left-[396px] z-30 bg-muted border-b border-border shadow-[2px_0_0_0_rgba(0,0,0,0.1)]';
 
                                 let widthClass = '';
-                                if (column.key === 'name') widthClass = 'w-[200px] min-w-[200px] max-w-[200px]';
+                                if (column.key === 'name') widthClass = 'w-[140px] min-w-[140px] max-w-[140px]';
                                 if (column.key === 'email') widthClass = 'w-[200px] min-w-[200px] max-w-[200px]';
                                 if (column.key === 'phone') widthClass = 'w-[180px] min-w-[180px] max-w-[180px]';
 
@@ -284,7 +349,7 @@ export function CandidateTable({
                         </tr>
                     </thead>
                     <tbody>
-                        {sortedCandidates.map((candidate) => (
+                        {sortedCandidates.slice((currentPage - 1) * 10, currentPage * 10).map((candidate) => (
                             <tr
                                 key={candidate.id}
                                 className="group/row hover:bg-muted/50 transition-colors border-b border-border last:border-0 cursor-pointer"
@@ -299,11 +364,11 @@ export function CandidateTable({
                                     const isSticky = ['name', 'email', 'phone'].includes(column.key);
                                     let stickyClass = '';
                                     if (column.key === 'name') stickyClass = 'sticky left-[56px] z-10 !bg-card group-hover/row:!bg-muted border-b border-border';
-                                    if (column.key === 'email') stickyClass = 'sticky left-[256px] z-10 !bg-card group-hover/row:!bg-muted border-b border-border';
-                                    if (column.key === 'phone') stickyClass = 'sticky left-[456px] z-10 !bg-card group-hover/row:!bg-muted border-b border-border shadow-[2px_0_0_0_rgba(0,0,0,0.1)]';
+                                    if (column.key === 'email') stickyClass = 'sticky left-[196px] z-10 !bg-card group-hover/row:!bg-muted border-b border-border';
+                                    if (column.key === 'phone') stickyClass = 'sticky left-[396px] z-10 !bg-card group-hover/row:!bg-muted border-b border-border shadow-[2px_0_0_0_rgba(0,0,0,0.1)]';
 
                                     let widthClass = '';
-                                    if (column.key === 'name') widthClass = 'w-[200px] min-w-[200px] max-w-[200px]';
+                                    if (column.key === 'name') widthClass = 'w-[140px] min-w-[140px] max-w-[140px]';
                                     if (column.key === 'email') widthClass = 'w-[200px] min-w-[200px] max-w-[200px]';
                                     if (column.key === 'phone') widthClass = 'w-[180px] min-w-[180px] max-w-[180px]';
 
@@ -642,6 +707,34 @@ export function CandidateTable({
                         ))}
                     </tbody>
                 </table>
+            </div>
+
+            {/* Pagination Controls */}
+            <div className="flex items-center justify-between p-4 border-t border-border bg-muted/20">
+                <div className="text-sm text-muted-foreground">
+                    Showing {(currentPage - 1) * 10 + 1} to {Math.min(currentPage * 10, sortedCandidates.length)} of {sortedCandidates.length} entries
+                </div>
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                        disabled={currentPage === 1}
+                    >
+                        Previous
+                    </Button>
+                    <span className="text-sm font-medium">
+                        Page {currentPage} of {Math.ceil(sortedCandidates.length / 10) || 1}
+                    </span>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(sortedCandidates.length / 10)))}
+                        disabled={currentPage >= Math.ceil(sortedCandidates.length / 10)}
+                    >
+                        Next
+                    </Button>
+                </div>
             </div>
         </div >
     );

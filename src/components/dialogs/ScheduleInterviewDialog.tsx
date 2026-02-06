@@ -23,6 +23,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { useRecruitment } from '@/context/RecruitmentContext';
 import { useDemands } from '@/context/DemandsContext';
+import { useUsers } from '@/context/UsersContext';
 
 interface ScheduleInterviewDialogProps {
   candidate: Candidate | null;
@@ -58,6 +59,7 @@ export const ScheduleInterviewDialog = ({
 }: ScheduleInterviewDialogProps) => {
   const { addInterview, emailTemplates, sendEmail } = useRecruitment();
   const { demands } = useDemands();
+  const { getUserByEmail } = useUsers();
   const [isSending, setIsSending] = useState(false);
   const [formData, setFormData] = useState({
     round: '1' as string,
@@ -65,6 +67,7 @@ export const ScheduleInterviewDialog = ({
     time: '',
     meetLink: '',
     interviewerName: '',
+    interviewerEmail: '',
     position: '',
   });
   const [emailSubject, setEmailSubject] = useState('');
@@ -136,6 +139,7 @@ export const ScheduleInterviewDialog = ({
         time: '',
         meetLink: '',
         interviewerName: '',
+        interviewerEmail: '',
         position: derivedPositionTitle
       });
       setEmailSubject('');
@@ -219,26 +223,52 @@ export const ScheduleInterviewDialog = ({
       scheduledAt,
       interviewerId: '4', // Default interviewer ID
       interviewerName: formData.interviewerName,
+      interviewerEmail: formData.interviewerEmail,
       meetLink: formData.meetLink,
       status: 'scheduled',
     });
 
-    // Send email notification
+    // Send email notifications to both candidate and interviewer
     setIsSending(true);
-    let emailSent = false;
+    let candidateEmailSent = false;
+    let interviewerEmailSent = false;
 
+    // Send to candidate
     if (candidate.email && emailSubject && emailBody) {
       try {
         const result = await sendEmail(candidate.email, emailSubject, emailBody.replace(/\n/g, '<br>'));
         if (result.success) {
-          emailSent = true;
+          candidateEmailSent = true;
           toast.success('Invitation email sent to candidate');
         }
       } catch (error) {
-        console.error('Failed to send interview email:', error);
+        console.error('Failed to send interview email to candidate:', error);
       }
     } else {
-      console.warn('Cannot send email: Missing candidate email or template content');
+      console.warn('Cannot send email to candidate: Missing candidate email or template content');
+    }
+
+    // Send to interviewer
+    if (formData.interviewerEmail && emailSubject && emailBody) {
+      try {
+        // Create interviewer-specific email body
+        const interviewerEmailBody = emailBody
+          .replace(/Dear \[Candidate Name\]|Dear [^,]+/g, `Dear ${formData.interviewerName || 'Interviewer'}`)
+          .replace(/This is (a reminder|an invitation) for your/g, 'You have been assigned to conduct an')
+          .replace(/you are (invited|scheduled) for/gi, 'you will be conducting')
+          .replace(/Please confirm your availability/g, 'Please be ready for the interview');
+
+        const interviewerSubject = emailSubject.replace('Interview Invitation', 'Interview Assignment');
+
+        const result = await sendEmail(formData.interviewerEmail, interviewerSubject, interviewerEmailBody.replace(/\n/g, '<br>'));
+        if (result.success) {
+          interviewerEmailSent = true;
+          toast.success('Notification email sent to interviewer');
+        }
+      } catch (error) {
+        console.error('Failed to send interview email to interviewer:', error);
+        toast.error('Failed to notify interviewer');
+      }
     }
 
     setIsSending(false);
@@ -256,6 +286,7 @@ export const ScheduleInterviewDialog = ({
       time: '',
       meetLink: '',
       interviewerName: '',
+      interviewerEmail: '',
       position: '',
     });
     setEmailSubject('');
@@ -331,13 +362,24 @@ export const ScheduleInterviewDialog = ({
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label>Interviewer Name</Label>
-            <Input
-              value={formData.interviewerName}
-              onChange={(e) => handleFormChange('interviewerName', e.target.value)}
-              placeholder="Enter interviewer name"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Interviewer Name</Label>
+              <Input
+                value={formData.interviewerName}
+                onChange={(e) => handleFormChange('interviewerName', e.target.value)}
+                placeholder="Enter interviewer name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Interviewer Email</Label>
+              <Input
+                type="email"
+                value={formData.interviewerEmail}
+                onChange={(e) => handleFormChange('interviewerEmail', e.target.value)}
+                placeholder="interviewer@company.com"
+              />
+            </div>
           </div>
 
           <div className="space-y-2">

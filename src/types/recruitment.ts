@@ -133,6 +133,7 @@ export interface Interview {
   scheduledAt: Date;
   interviewerId: string;
   interviewerName: string;
+  interviewerEmail?: string;
   meetLink?: string;
   status: 'scheduled' | 'completed' | 'cancelled';
   feedback?: {

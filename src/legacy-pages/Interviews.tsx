@@ -46,7 +46,7 @@ const replacePlaceholders = (template: string, data: Record<string, string>) => 
 const Interviews = () => {
   const router = useRouter();
   const { user } = useAuth();
-  const { updateCandidateFeedback, updateCandidateStatus, interviews, candidates, updateInterview, emailTemplates, sendEmail } = useRecruitment();
+  const { updateCandidateFeedback, updateCandidateStatus, filteredInterviews: interviews, candidates, updateInterview, emailTemplates, sendEmail } = useRecruitment();
   const [selectedInterview, setSelectedInterview] = useState<Interview | null>(null);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [isEmailOpen, setIsEmailOpen] = useState(false);

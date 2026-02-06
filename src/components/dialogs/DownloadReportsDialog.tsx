@@ -16,6 +16,7 @@ import { useAuth } from '@/context/AuthContext';
 import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
 import { Download } from 'lucide-react';
+import { AnimateIcon } from '@/components/ui/AnimateIcon';
 
 interface DownloadReportsDialogProps {
     open: boolean;
@@ -273,8 +274,10 @@ export const DownloadReportsDialog = ({ open, onOpenChange }: DownloadReportsDia
                     <Button variant="outline" onClick={() => onOpenChange(false)}>
                         Cancel
                     </Button>
-                    <Button onClick={downloadExcel}>
-                        <Download className="mr-2 h-4 w-4" />
+                    <Button onClick={downloadExcel} className="group">
+                        <AnimateIcon animateOnHover animation="bounce" className="mr-2">
+                            <Download className="h-4 w-4" />
+                        </AnimateIcon>
                         Download Excel
                     </Button>
                 </DialogFooter>

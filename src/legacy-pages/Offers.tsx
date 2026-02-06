@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -167,6 +167,12 @@ const Offers = () => {
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter]);
 
   // Derive offers from candidates who have an offer_rolled status or have an offeredCTC
   const offers: Offer[] = candidates
@@ -334,7 +340,7 @@ const Offers = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredOffers.map((offer) => {
+              {filteredOffers.slice((currentPage - 1) * 10, currentPage * 10).map((offer) => {
                 const StatusIcon = statusConfig[offer.status].icon;
                 return (
                   <TableRow
@@ -430,6 +436,34 @@ const Offers = () => {
               })}
             </TableBody>
           </Table>
+
+          {/* Pagination Controls */}
+          <div className="flex items-center justify-between p-4 border-t border-border bg-muted/20">
+            <div className="text-sm text-muted-foreground">
+              Showing {(currentPage - 1) * 10 + 1} to {Math.min(currentPage * 10, filteredOffers.length)} of {filteredOffers.length} entries
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+              >
+                Previous
+              </Button>
+              <span className="text-sm font-medium">
+                Page {currentPage} of {Math.ceil(filteredOffers.length / 10) || 1}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(filteredOffers.length / 10)))}
+                disabled={currentPage >= Math.ceil(filteredOffers.length / 10)}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
         </div>
 
         {/* View Dialog */}

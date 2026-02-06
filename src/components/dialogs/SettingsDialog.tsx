@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useRecruitment } from '@/context/RecruitmentContext';
 import { EmailTemplate } from '@/types/recruitment';
 import { Settings, Save, X } from 'lucide-react';
+import { AnimateIcon } from '@/components/ui/AnimateIcon';
 
 interface SettingsDialogProps {
     open: boolean;
@@ -53,7 +54,9 @@ export const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
             <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-hidden flex flex-col">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
-                        <Settings className="h-5 w-5" />
+                        <AnimateIcon animateOnHover animation="spin">
+                            <Settings className="h-5 w-5" />
+                        </AnimateIcon>
                         System Settings - Mail Templates
                     </DialogTitle>
                 </DialogHeader>

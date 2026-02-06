@@ -87,15 +87,27 @@ export const InterviewCalendar = ({
                 {count > 0 && (
                     <div className="flex gap-1 mt-1">
                         {count <= 3 ? (
-                            Array.from({ length: count }).map((_, i) => (
-                                <span
-                                    key={i}
-                                    className={cn(
-                                        "w-2 h-2 rounded-full",
-                                        isSelected ? "bg-white" : "bg-primary"
-                                    )}
-                                />
-                            ))
+                            Array.from({ length: count }).map((_, i) => {
+                                // Define distinct colors for dots
+                                const dotColors = [
+                                    "bg-blue-500",
+                                    "bg-orange-500",
+                                    "bg-green-500",
+                                    "bg-purple-500",
+                                    "bg-pink-500"
+                                ];
+                                const colorClass = dotColors[i % dotColors.length];
+
+                                return (
+                                    <span
+                                        key={i}
+                                        className={cn(
+                                            "w-2 h-2 rounded-full",
+                                            isSelected ? "bg-white" : colorClass
+                                        )}
+                                    />
+                                );
+                            })
                         ) : (
                             <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4 bg-primary text-primary-foreground border-none">
                                 {count}
