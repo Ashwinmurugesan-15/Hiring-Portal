@@ -134,12 +134,12 @@ export function CandidateFilters({ onFilterChange }: CandidateFiltersProps) {
 
     return (
         <div className="bg-card p-4 rounded-lg border shadow-sm mb-2">
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2">
 
 
                 {/* Position Filter */}
                 <Select value={filters.position} onValueChange={(v) => updateFilter('position', v)}>
-                    <SelectTrigger className="w-[200px]">
+                    <SelectTrigger className="w-[170px]">
                         <SelectValue placeholder="Position" />
                     </SelectTrigger>
                     <SelectContent>
@@ -153,7 +153,7 @@ export function CandidateFilters({ onFilterChange }: CandidateFiltersProps) {
 
                 {/* Location Filter */}
                 <Select value={filters.location} onValueChange={(v) => updateFilter('location', v)}>
-                    <SelectTrigger className="w-[180px]">
+                    <SelectTrigger className="w-[140px]">
                         <SelectValue placeholder="Location" />
                     </SelectTrigger>
                     <SelectContent>
@@ -167,7 +167,7 @@ export function CandidateFilters({ onFilterChange }: CandidateFiltersProps) {
 
                 {/* Experience Filter */}
                 <Select value={filters.experience} onValueChange={(v) => updateFilter('experience', v)}>
-                    <SelectTrigger className="w-[180px]">
+                    <SelectTrigger className="w-[150px]">
                         <SelectValue placeholder="Experience" />
                     </SelectTrigger>
                     <SelectContent>
@@ -181,7 +181,7 @@ export function CandidateFilters({ onFilterChange }: CandidateFiltersProps) {
 
                 {/* Notice Period Filter */}
                 <Select value={filters.noticePeriod} onValueChange={(v) => updateFilter('noticePeriod', v)}>
-                    <SelectTrigger className="w-[180px]">
+                    <SelectTrigger className="w-[160px]">
                         <SelectValue placeholder="Notice Period" />
                     </SelectTrigger>
                     <SelectContent>
@@ -210,7 +210,7 @@ export function CandidateFilters({ onFilterChange }: CandidateFiltersProps) {
 
                 {/* Feedback Filter */}
                 <Select value={filters.feedbackFilter} onValueChange={(v) => updateFilter('feedbackFilter', v)}>
-                    <SelectTrigger className="w-[200px]">
+                    <SelectTrigger className="w-[170px]">
                         <SelectValue placeholder="Feedback Status" />
                     </SelectTrigger>
                     <SelectContent>

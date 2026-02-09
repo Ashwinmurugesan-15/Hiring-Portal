@@ -365,7 +365,7 @@ const Interviews = () => {
               </h3>
               <div className="grid gap-4">
                 {dateInterviews.map((interview, index) => (
-                  <Card key={interview.id || `interview-${date}-${index}`} className="shadow-card hover:shadow-lg transition-all">
+                  <Card key={`${interview.id || 'interview'}-${date}-${index}`} className="shadow-card hover:shadow-lg transition-all">
                     <CardContent className="p-6">
                       <div className="flex flex-col lg:flex-row lg:items-center gap-4">
                         {/* Time */}

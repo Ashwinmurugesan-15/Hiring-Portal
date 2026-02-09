@@ -172,9 +172,9 @@ export const InterviewCalendar = ({
                                 </div>
                                 {dayInterviews.length > 0 && (
                                     <div className="space-y-1">
-                                        {dayInterviews.slice(0, 2).map((interview) => (
+                                        {dayInterviews.slice(0, 2).map((interview, i) => (
                                             <div
-                                                key={interview.id}
+                                                key={`${interview.id || 'interview'}-${i}`}
                                                 className="text-xs p-1 bg-primary/10 rounded truncate"
                                                 title={`${interview.candidateName} - ${format(interview.scheduledAt, 'h:mm a')}`}
                                             >
@@ -227,8 +227,8 @@ export const InterviewCalendar = ({
                     </div>
                 ) : (
                     <div className="space-y-3">
-                        {dayInterviews.map((interview) => (
-                            <Card key={interview.id} className="shadow-sm">
+                        {dayInterviews.map((interview, i) => (
+                            <Card key={`${interview.id || 'day-int'}-${i}`} className="shadow-sm">
                                 <CardContent className="p-4">
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">

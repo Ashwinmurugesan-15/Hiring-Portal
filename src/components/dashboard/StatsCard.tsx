@@ -17,6 +17,8 @@ interface StatsCardProps {
   description?: string;
   variant?: 'default' | 'primary' | 'accent' | 'success' | 'warning' | 'destructive';
   onClick?: () => void;
+  animateIconOnHover?: boolean;
+  iconContainerClassName?: string;
 }
 
 const variantStyles = {
@@ -37,6 +39,8 @@ const iconStyles = {
   destructive: 'bg-destructive/10 text-destructive',
 };
 
+import React, { useState } from 'react';
+
 export const StatsCard = ({
   title,
   value,
@@ -45,7 +49,16 @@ export const StatsCard = ({
   description,
   variant = 'default',
   onClick,
+  animateIconOnHover = false,
+  iconContainerClassName,
 }: StatsCardProps) => {
+  const [isHovered, setIsHovered] = useState(false);
+
+  // Clone icon to pass animate prop if enabled
+  const renderedIcon = (animateIconOnHover && React.isValidElement(icon))
+    ? React.cloneElement(icon as React.ReactElement, { animate: isHovered })
+    : icon;
+
   return (
     <Card
       className={cn(
@@ -54,6 +67,8 @@ export const StatsCard = ({
         onClick && 'cursor-pointer hover:scale-[1.02]'
       )}
       onClick={onClick}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
       <motion.div initial="rest" whileHover="hover" animate="rest">
         <CardContent className="p-6">
@@ -82,8 +97,8 @@ export const StatsCard = ({
                 <p className="text-sm text-muted-foreground">{description}</p>
               )}
             </div>
-            <div className={cn('p-3 rounded-xl', iconStyles[variant])}>
-              {icon}
+            <div className={cn('p-3 rounded-xl', iconStyles[variant], iconContainerClassName)}>
+              {renderedIcon}
             </div>
           </div>
         </CardContent>

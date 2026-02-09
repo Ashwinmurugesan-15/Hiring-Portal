@@ -6,11 +6,13 @@ import { cn } from '@/lib/utils';
 
 interface UsersProps extends Omit<SVGMotionProps<SVGSVGElement>, 'variants' | 'initial' | 'whileHover' | 'animate'> {
     animateOnHover?: boolean;
+    animate?: boolean;
     animation?: 'ring' | 'spin' | 'bounce' | 'blink';
 }
 
 export const Users = ({
     animateOnHover = false,
+    animate,
     animation = 'bounce',
     className,
     ...props
@@ -76,7 +78,8 @@ export const Users = ({
             strokeLinejoin="round"
             className={cn('lucide lucide-users', className)}
             initial="rest"
-            whileHover={animateOnHover ? 'hover' : undefined}
+            animate={animate !== undefined ? (animate ? "hover" : "rest") : undefined}
+            whileHover={animate === undefined && animateOnHover ? "hover" : undefined}
             variants={selectedAnimation}
             {...props}
         >

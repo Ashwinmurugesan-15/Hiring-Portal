@@ -26,9 +26,13 @@ import {
   Plus,
   XCircle,
   Download,
+  X,
+  CheckCheck,
+  User,
 } from 'lucide-react';
 import { ClipboardCheck } from '@/components/ui/ClipboardCheck';
 import { Users as AnimatedUsers } from '@/components/ui/Users';
+import { CheckCheck as AnimatedCheckCheck } from '@/components/animate-ui/icons/check-check';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -357,8 +361,14 @@ const Dashboard = () => {
             <StatsCard
               title="Rejected"
               value={totalRejected}
-              icon={<UserX className="h-5 w-5" />}
+              icon={
+                <AnimateIcon animateOnHover>
+                  <X className="h-5 w-5" />
+                </AnimateIcon>
+              }
               variant="default"
+              animateIconOnHover
+              iconContainerClassName="p-1.5 rounded-lg"
             />
           </div>
 
@@ -529,8 +539,13 @@ const Dashboard = () => {
           <StatsCard
             title="Candidates Selected"
             value={candidates.filter(c => c.status === 'selected').length}
-            icon={<ClipboardCheck animateOnHover className="h-5 w-5" />}
+            icon={
+              <AnimateIcon animateOnHover animation="bounce">
+                <ClipboardCheck className="h-5 w-5" />
+              </AnimateIcon>
+            }
             variant="success"
+            animateIconOnHover
           />
           <StatsCard
             title="Candidates Interviewed"
@@ -541,26 +556,39 @@ const Dashboard = () => {
           <StatsCard
             title="Candidates Rejected"
             value={totalRejected}
-            icon={<UserX className="h-5 w-5" />}
+            icon={
+              <AnimateIcon animateOnHover>
+                <X className="h-5 w-5" />
+              </AnimateIcon>
+            }
             variant="destructive"
+            animateIconOnHover
+            iconContainerClassName="p-1.5 rounded-lg"
           />
           <StatsCard
             title="Candidates Offered"
             value={candidates.filter(c => c.status === 'offer_rolled').length}
-            icon={<FileCheck className="h-5 w-5" />}
+            icon={<AnimatedCheckCheck animateOnHover loop size={20} />}
             variant="warning"
+            animateIconOnHover
           />
           <StatsCard
             title="Candidates Onboarded"
             value={candidates.filter(c => c.status === 'onboarded').length}
-            icon={<UserCheck className="h-5 w-5" />}
+            icon={
+              <AnimateIcon animateOnHover animation="bounce">
+                <User className="h-5 w-5" />
+              </AnimateIcon>
+            }
             variant="default"
+            animateIconOnHover
           />
           <StatsCard
             title="Bench Strength"
             value={mockBenchResources.length}
             icon={<AnimatedUsers animateOnHover className="h-5 w-5" />}
             variant="accent"
+            animateIconOnHover
           />
           <StatsCard
             title="Allocated to Projects"
@@ -572,23 +600,41 @@ const Dashboard = () => {
           <StatsCard
             title="Screening Rejection %"
             value={`${screeningRejectionPercentage}%`}
-            icon={<XCircle className="h-5 w-5" />}
+            icon={
+              <AnimateIcon animateOnHover>
+                <X className="h-5 w-5" />
+              </AnimateIcon>
+            }
             variant="destructive"
             onClick={() => router.push('/candidates?status=rejected&currentRound=undefined')}
+            animateIconOnHover
+            iconContainerClassName="p-1.5 rounded-lg"
           />
           <StatsCard
             title="Round 1 Rejection %"
             value={`${round1RejectionPercentage}%`}
-            icon={<XCircle className="h-5 w-5" />}
+            icon={
+              <AnimateIcon animateOnHover>
+                <X className="h-5 w-5" />
+              </AnimateIcon>
+            }
             variant="destructive"
             onClick={() => router.push('/candidates?status=rejected&currentRound=1')}
+            animateIconOnHover
+            iconContainerClassName="p-1.5 rounded-lg"
           />
           <StatsCard
             title="Round 2 Rejection %"
             value={`${round2RejectionPercentage}%`}
-            icon={<XCircle className="h-5 w-5" />}
+            icon={
+              <AnimateIcon animateOnHover>
+                <X className="h-5 w-5" />
+              </AnimateIcon>
+            }
             variant="destructive"
             onClick={() => router.push('/candidates?status=rejected&currentRound=2')}
+            animateIconOnHover
+            iconContainerClassName="p-1.5 rounded-lg"
           />
         </div>
 

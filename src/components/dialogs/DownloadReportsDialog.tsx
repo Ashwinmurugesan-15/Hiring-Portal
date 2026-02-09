@@ -28,6 +28,18 @@ export const DownloadReportsDialog = ({ open, onOpenChange }: DownloadReportsDia
     const { demands } = useDemands();
     const { user } = useAuth();
 
+    const safeFormat = (date: any, formatStr: string) => {
+        try {
+            if (!date) return '-';
+            const d = new Date(date);
+            if (isNaN(d.getTime())) return '-';
+            return format(d, formatStr);
+        } catch (e) {
+            return '-';
+        }
+    };
+
+
     const [selectedReports, setSelectedReports] = useState({
         candidates: true,
         interviews: false,
@@ -100,7 +112,7 @@ export const DownloadReportsDialog = ({ open, onOpenChange }: DownloadReportsDia
                 Phone: c.phone,
                 Status: c.status,
                 Experience: c.experience,
-                'Applied Date': format(c.appliedAt, 'yyyy-MM-dd'),
+                'Applied Date': safeFormat(c.appliedAt, 'yyyy-MM-dd'),
             }));
             const worksheet = XLSX.utils.json_to_sheet(data);
             XLSX.utils.book_append_sheet(workbook, worksheet, 'Candidates');
@@ -112,7 +124,7 @@ export const DownloadReportsDialog = ({ open, onOpenChange }: DownloadReportsDia
                 'Demand Title': i.demandTitle,
                 Round: i.round,
                 Interviewer: i.interviewerName,
-                Date: format(i.scheduledAt, 'yyyy-MM-dd HH:mm'),
+                Date: safeFormat(i.scheduledAt, 'yyyy-MM-dd HH:mm'),
                 Status: i.status,
             }));
             const worksheet = XLSX.utils.json_to_sheet(data);
@@ -126,7 +138,7 @@ export const DownloadReportsDialog = ({ open, onOpenChange }: DownloadReportsDia
                 Location: d.location,
                 Status: d.status,
                 Openings: d.openings,
-                'Created At': format(d.createdAt, 'yyyy-MM-dd'),
+                'Created At': safeFormat(d.createdAt, 'yyyy-MM-dd'),
             }));
             const worksheet = XLSX.utils.json_to_sheet(data);
             XLSX.utils.book_append_sheet(workbook, worksheet, 'Demands');
@@ -137,7 +149,7 @@ export const DownloadReportsDialog = ({ open, onOpenChange }: DownloadReportsDia
                 Name: c.name,
                 Email: c.email,
                 Position: c.offeredPosition || '-',
-                'Applied Date': format(c.appliedAt, 'yyyy-MM-dd'),
+                'Applied Date': safeFormat(c.appliedAt, 'yyyy-MM-dd'),
             }));
             const worksheet = XLSX.utils.json_to_sheet(data);
             XLSX.utils.book_append_sheet(workbook, worksheet, 'Selected Candidates');
@@ -148,7 +160,7 @@ export const DownloadReportsDialog = ({ open, onOpenChange }: DownloadReportsDia
                 Name: c.name,
                 Email: c.email,
                 Status: c.status,
-                'Joining Date': c.dateOfJoining ? format(c.dateOfJoining, 'yyyy-MM-dd') : '-',
+                'Joining Date': safeFormat(c.dateOfJoining, 'yyyy-MM-dd'),
             }));
             const worksheet = XLSX.utils.json_to_sheet(data);
             XLSX.utils.book_append_sheet(workbook, worksheet, 'Onboarding');
@@ -227,7 +239,7 @@ export const DownloadReportsDialog = ({ open, onOpenChange }: DownloadReportsDia
             XLSX.utils.book_append_sheet(workbook, pipelineSheet, 'Hiring Pipeline');
         }
 
-        XLSX.writeFile(workbook, `Recruitment_All_Report_${format(new Date(), 'yyyyMMdd_HHmm')}.xlsx`);
+        XLSX.writeFile(workbook, `Recruitment_All_Report_${safeFormat(new Date(), 'yyyyMMdd_HHmm')}.xlsx`);
         onOpenChange(false);
     };
 

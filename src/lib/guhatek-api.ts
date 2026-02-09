@@ -207,7 +207,260 @@ export const guhatekApi = {
             console.error('❌ Delete Application Error:', error);
             return { success: false, error: error.message };
         }
+    },
+
+    /**
+     * Creates a new job demand/opening.
+     */
+    async createDemand(jobOpening: JobOpeningData): Promise<DemandResponse> {
+        const { apiUrl } = getConfig();
+        if (!apiUrl) {
+            return { success: false, error: 'API URL not configured' };
+        }
+
+        try {
+            const token = await this.getAuthToken();
+
+            // The API expects jobOpening as a JSON string
+            const response = await fetch(`${apiUrl}/api/applications/createDemand`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    jobOpening: JSON.stringify(jobOpening)
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ message: response.statusText }));
+                console.error('❌ Create Demand Failed:', errorData);
+                return {
+                    success: false,
+                    error: errorData.error || 'Bad Request',
+                    message: errorData.message
+                };
+            }
+
+            const data = await response.json();
+            console.log('✅ Create Demand Successful. Response:', JSON.stringify(data, null, 2));
+            return { success: true, id: data.id };
+        } catch (error: any) {
+            console.error('❌ Create Demand Error:', error);
+            return { success: false, error: error.message };
+        }
+    },
+
+    /**
+     * Updates an existing job demand.
+     */
+    async updateDemand(id: string, updates: DemandUpdateData): Promise<DemandResponse> {
+        const { apiUrl } = getConfig();
+        if (!apiUrl) {
+            return { success: false, error: 'API URL not configured' };
+        }
+
+        try {
+            const token = await this.getAuthToken();
+
+            const response = await fetch(`${apiUrl}/api/applications/${id}/updateDemand`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(updates)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ message: response.statusText }));
+                console.error('❌ Update Demand Failed:', errorData);
+                return { success: false, error: errorData.error, message: errorData.message };
+            }
+
+            const data = await response.json();
+            console.log('✅ Update Demand Successful. Response:', JSON.stringify(data, null, 2));
+            return { success: true, updated: data.updated };
+        } catch (error: any) {
+            console.error('❌ Update Demand Error:', error);
+            return { success: false, error: error.message };
+        }
+    },
+
+    /**
+     * Fetches all job openings.
+     */
+    async getJobOpenings(): Promise<JobOpening[]> {
+        const { apiUrl } = getConfig();
+        if (!apiUrl) {
+            console.warn('GUHATEK_API_URL missing.');
+            return [];
+        }
+
+        try {
+            const token = await this.getAuthToken();
+
+            const response = await fetch(`${apiUrl}/api/applications/jobOpenings`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to fetch job openings: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            console.log('✅ Job Openings Fetched:', data);
+
+            // Handle various response structures
+            if (Array.isArray(data)) {
+                return data;
+            }
+            if (data.data && Array.isArray(data.data)) {
+                return data.data;
+            }
+            if (data.jobOpenings && Array.isArray(data.jobOpenings)) {
+                return data.jobOpenings;
+            }
+
+            console.warn('Unexpected API response structure:', data);
+            return [];
+        } catch (error) {
+            console.error('❌ Fetch Job Openings Error:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Schedules an interview meeting.
+     */
+    async scheduleMeet(meetingData: ScheduleMeetingData): Promise<MeetingResponse> {
+        const { apiUrl } = getConfig();
+        if (!apiUrl) {
+            return { success: false, error: 'API URL not configured' };
+        }
+
+        try {
+            const token = await this.getAuthToken();
+
+            // The API expects scheduleMeeting as a JSON string
+            const response = await fetch(`${apiUrl}/api/applications/scheduleMeet`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    scheduleMeeting: JSON.stringify(meetingData)
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ message: response.statusText }));
+                console.error('❌ Schedule Meeting Failed:', errorData);
+                return {
+                    success: false,
+                    error: errorData.error || 'Bad Request',
+                    message: errorData.message
+                };
+            }
+
+            const data = await response.json();
+            console.log('✅ Schedule Meeting Successful. Response:', JSON.stringify(data, null, 2));
+            return { success: true, id: data.id };
+        } catch (error: any) {
+            console.error('❌ Schedule Meeting Error:', error);
+            return { success: false, error: error.message };
+        }
+    },
+
+    /**
+     * Updates an existing scheduled meeting.
+     */
+    async updateMeet(id: string, updates: MeetingUpdateData): Promise<MeetingResponse> {
+        const { apiUrl } = getConfig();
+        if (!apiUrl) {
+            return { success: false, error: 'API URL not configured' };
+        }
+
+        try {
+            const token = await this.getAuthToken();
+
+            const response = await fetch(`${apiUrl}/api/applications/${id}/updateMeet`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(updates)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ message: response.statusText }));
+                console.error('❌ Update Meeting Failed:', errorData);
+                return { success: false, error: errorData.error, message: errorData.message };
+            }
+
+            const data = await response.json();
+            console.log('✅ Update Meeting Successful. Response:', JSON.stringify(data, null, 2));
+            return { success: true, updated: data.updated };
+        } catch (error: any) {
+            console.error('❌ Update Meeting Error:', error);
+            return { success: false, error: error.message };
+        }
+    },
+
+    /**
+     * Fetches all scheduled meetings.
+     */
+    async getScheduledMeetings(): Promise<ScheduledMeeting[]> {
+        const { apiUrl } = getConfig();
+        if (!apiUrl) {
+            console.warn('GUHATEK_API_URL missing.');
+            return [];
+        }
+
+        try {
+            const token = await this.getAuthToken();
+
+            const response = await fetch(`${apiUrl}/api/applications/scheduleMeet`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to fetch scheduled meetings: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            console.log('✅ Scheduled Meetings Fetched:', data);
+
+            // Handle various response structures
+            if (Array.isArray(data)) {
+                return data;
+            }
+            if (data.data && Array.isArray(data.data)) {
+                return data.data;
+            }
+            if (data.meetings && Array.isArray(data.meetings)) {
+                return data.meetings;
+            }
+
+            console.warn('Unexpected API response structure:', data);
+            return [];
+        } catch (error) {
+            console.error('❌ Fetch Scheduled Meetings Error:', error);
+            throw error;
+        }
     }
+
 };
 
 const MOCK_APPLICATIONS: ExternalApplication[] = [
@@ -270,4 +523,81 @@ export interface ApplicationResponse {
     id?: string;
     updated?: any;
     error?: string;
+}
+
+// Job Demand Interfaces
+export interface JobOpeningData {
+    jobTitle: string;
+    role: string;
+    experience: string;
+    location: string;
+    numberOfOpenings: number;
+    requireSkill: string[];
+}
+
+export interface DemandUpdateData {
+    jobStatus?: 'Open' | 'Closed' | 'On Hold';
+    numberOfOpenings?: number;
+    [key: string]: any;
+}
+
+export interface JobOpening {
+    id: string;
+    job_title: string;
+    role: string;
+    experience: string;
+    location: string;
+    number_of_openings: number;
+    required_skills: string[];
+    status: string;
+    created_at: string;
+    updated_at: string;
+}
+
+// Interview Scheduling Interfaces
+export interface ScheduleMeetingData {
+    position: string;
+    interviewRound: string;
+    interviewDate: string;
+    interviewTime: string;
+    interviewerName: string;
+    meetLink: string;
+}
+
+export interface MeetingUpdateData {
+    position?: string;
+    interviewRound?: string;
+    interviewDate?: string;
+    interviewTime?: string;
+    interviewerName?: string;
+    meetLink?: string;
+    [key: string]: any;
+}
+
+export interface ScheduledMeeting {
+    id: string;
+    position: string;
+    interview_round: string;
+    interview_date: string;
+    interview_time: string;
+    interviewer_name: string;
+    meet_link: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface DemandResponse {
+    success: boolean;
+    id?: string;
+    updated?: JobOpening;
+    error?: string;
+    message?: string;
+}
+
+export interface MeetingResponse {
+    success: boolean;
+    id?: string;
+    updated?: ScheduledMeeting;
+    error?: string;
+    message?: string;
 }
