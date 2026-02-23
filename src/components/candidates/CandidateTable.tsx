@@ -495,9 +495,12 @@ export function CandidateTable({
                                                         value={candidate.status}
                                                         onValueChange={(value) => onStatusChange(candidate.id, value as Candidate['status'])}
                                                     >
-                                                        <SelectTrigger className="h-8 w-[140px] text-xs font-medium">
+                                                        <SelectTrigger className="h-8 w-auto min-w-[140px] text-xs font-medium">
                                                             <SelectValue>
-                                                                <StatusBadge status={candidate.status} />
+                                                                <StatusBadge
+                                                                    status={candidate.status}
+                                                                    extraLabel={candidate.status === 'rejected' ? (positionTitleMap[candidate.demandId] || candidate.demandId) : undefined}
+                                                                />
                                                             </SelectValue>
                                                         </SelectTrigger>
                                                         <SelectContent>

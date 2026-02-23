@@ -3,7 +3,7 @@ import { Demand } from '@/types/recruitment';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, MapPin, Briefcase, Clock, RotateCcw, Users, Calendar } from 'lucide-react';
+import { MoreHorizontal, MapPin, Briefcase, Clock, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import {
@@ -12,6 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useRecruitment } from '@/context/RecruitmentContext';
 
 interface DemandCardProps {
   demand: Demand;
@@ -19,25 +20,32 @@ interface DemandCardProps {
   onViewDetails?: () => void;
   onEdit?: () => void;
   onClose?: () => void;
-  onReopen?: () => void;
   onDelete?: () => void;
   onViewApplied?: () => void;
   onViewInterviewed?: () => void;
   onViewOffers?: () => void;
+  onViewRejected?: () => void;
   showActions?: boolean;
 }
 
-const statusColors = {
+const statusColors: Record<string, string> = {
   open: 'bg-success/10 text-success border-success/20',
   closed: 'bg-muted text-muted-foreground border-border',
   on_hold: 'bg-warning/10 text-warning border-warning/20',
+  deleted: 'bg-destructive/10 text-destructive border-destructive/20',
 };
 
 const isValidDate = (d: any) => {
   return d instanceof Date && !isNaN(d.getTime());
 };
 
-export const DemandCard = ({ demand, onViewDetails, onEdit, onClose, onReopen, onDelete, onViewApplied, onViewInterviewed, onViewOffers, showActions = true }: DemandCardProps) => {
+export const DemandCard = ({ demand, onViewDetails, onEdit, onClose, onDelete, onViewApplied, onViewInterviewed, onViewOffers, onViewRejected, showActions = true }: DemandCardProps) => {
+  const { candidates } = useRecruitment();
+  // Live count: candidates linked to this demand who are rejected
+  const liveRejectedCount = candidates.filter(
+    c => c.demandId === demand.id && c.status === 'rejected'
+  ).length;
+  const rejectedCount = liveRejectedCount > 0 ? liveRejectedCount : (demand.rejected || 0);
   return (
     <Card
       className="group border shadow-card hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden"
@@ -90,14 +98,6 @@ export const DemandCard = ({ demand, onViewDetails, onEdit, onClose, onReopen, o
                       Close Position
                     </DropdownMenuItem>
                   )}
-                  {(demand.status === 'closed' || demand.status === 'on_hold') && (
-                    <DropdownMenuItem onClick={(e) => {
-                      e.stopPropagation();
-                      onReopen?.();
-                    }}>
-                      Reopen Position
-                    </DropdownMenuItem>
-                  )}
                   <DropdownMenuItem onClick={(e) => {
                     e.stopPropagation();
                     onDelete?.();
@@ -144,14 +144,11 @@ export const DemandCard = ({ demand, onViewDetails, onEdit, onClose, onReopen, o
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 pt-4 border-t border-border">
+        <div className="grid grid-cols-4 gap-2 pt-4 border-t border-border">
           <div className="text-center cursor-pointer hover:text-primary transition-colors" onClick={(e) => {
             e.stopPropagation();
             onViewApplied?.();
           }}>
-            <div className="flex items-center justify-center gap-1 text-muted-foreground mb-1">
-              <Users className="h-3.5 w-3.5" />
-            </div>
             <p className="text-lg font-semibold text-foreground">{demand.applicants}</p>
             <p className="text-xs text-muted-foreground">Applied</p>
           </div>
@@ -159,11 +156,15 @@ export const DemandCard = ({ demand, onViewDetails, onEdit, onClose, onReopen, o
             e.stopPropagation();
             onViewInterviewed?.();
           }}>
-            <div className="flex items-center justify-center gap-1 text-muted-foreground mb-1">
-              <Calendar className="h-3.5 w-3.5" />
-            </div>
             <p className="text-lg font-semibold text-foreground">{demand.interviewed}</p>
             <p className="text-xs text-muted-foreground">Interviewed</p>
+          </div>
+          <div className="text-center border-r border-border cursor-pointer hover:text-destructive transition-colors" onClick={(e) => {
+            e.stopPropagation();
+            onViewRejected?.();
+          }}>
+            <p className="text-lg font-semibold text-foreground">{rejectedCount}</p>
+            <p className="text-xs text-muted-foreground">Rejected</p>
           </div>
           <div className="text-center cursor-pointer hover:text-primary transition-colors" onClick={(e) => {
             e.stopPropagation();

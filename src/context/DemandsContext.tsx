@@ -6,7 +6,7 @@ import { useAuth } from './AuthContext';
 
 interface DemandsContextType {
     demands: Demand[];
-    addDemand: (newDemand: Omit<Demand, 'id' | 'createdAt' | 'applicants' | 'interviewed' | 'offers'>) => void;
+    addDemand: (newDemand: Omit<Demand, 'id' | 'createdAt' | 'applicants' | 'interviewed' | 'offers' | 'rejected'>) => void;
     updateDemand: (updatedDemand: Demand) => void;
     closeDemand: (id: string) => void;
     reopenDemand: (id: string) => void;
@@ -45,7 +45,7 @@ export const DemandsProvider = ({ children }: { children: ReactNode }) => {
         fetchDemands();
     }, [isAuthenticated]);
 
-    const addDemand = async (demand: Omit<Demand, 'id' | 'createdAt' | 'applicants' | 'interviewed' | 'offers'>) => {
+    const addDemand = async (demand: Omit<Demand, 'id' | 'createdAt' | 'applicants' | 'interviewed' | 'offers' | 'rejected'>) => {
         const newDemandData = {
             ...demand,
             id: String(Date.now()),
@@ -53,6 +53,7 @@ export const DemandsProvider = ({ children }: { children: ReactNode }) => {
             applicants: 0,
             interviewed: 0,
             offers: 0,
+            rejected: 0,
         };
 
         try {
@@ -106,20 +107,12 @@ export const DemandsProvider = ({ children }: { children: ReactNode }) => {
     };
 
     const deleteDemand = async (id: string) => {
-        try {
-            const res = await fetch(`/api/demands/${id}`, {
-                method: 'DELETE',
-            });
-
-            if (res.ok) {
-                setDemands((prev) => prev.filter((d) => d.id !== id));
-            } else {
-                console.error('Failed to delete demand:', res.statusText);
-            }
-        } catch (error) {
-            console.error('Failed to delete demand:', error);
-        }
+        const demand = demands.find((d) => d.id === id);
+        if (!demand) return;
+        // Soft-delete: mark status as 'deleted'
+        await updateDemand({ ...demand, status: 'deleted' });
     };
+
 
     return (
         <DemandsContext.Provider value={{ demands, addDemand, updateDemand, closeDemand, reopenDemand, deleteDemand }}>

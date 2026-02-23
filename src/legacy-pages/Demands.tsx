@@ -28,7 +28,7 @@ const Demands = () => {
   const router = useRouter();
   const { user } = useAuth();
   // Use global demands state
-  const { demands, addDemand, updateDemand, closeDemand, reopenDemand, deleteDemand } = useDemands();
+  const { demands, addDemand, updateDemand, closeDemand, deleteDemand } = useDemands();
   // const [demands, setDemands] = useState<Demand[]>(mockDemands); // Removed local state
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -42,7 +42,7 @@ const Demands = () => {
   const [isEditOpen, setIsEditOpen] = useState(false);
 
   const [isCloseConfirmOpen, setIsCloseConfirmOpen] = useState(false);
-  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false); // New delete state
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
   // Deep linking
   const searchParams = useSearchParams();
@@ -67,12 +67,17 @@ const Demands = () => {
     const matchesSearch =
       (demand.title?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
       (demand.role?.toLowerCase() || '').includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || demand.status === statusFilter;
 
-    return matchesSearch && matchesStatus;
+    // Hide deleted demands unless specifically filtering for them
+    if (statusFilter === 'deleted') {
+      return demand.status === 'deleted' && matchesSearch;
+    }
+
+    const matchesStatus = statusFilter === 'all' || demand.status === statusFilter;
+    return matchesSearch && matchesStatus && demand.status !== 'deleted';
   });
 
-  const handleCreateDemand = (newDemand: Omit<Demand, 'id' | 'createdAt' | 'applicants' | 'interviewed' | 'offers'>) => {
+  const handleCreateDemand = (newDemand: Omit<Demand, 'id' | 'createdAt' | 'applicants' | 'interviewed' | 'offers' | 'rejected'>) => {
     addDemand(newDemand);
   };
 
@@ -96,11 +101,6 @@ const Demands = () => {
     closeDemand(selectedDemand.id);
     toast.success(`Position "${selectedDemand.title}" has been closed`);
     setIsCloseConfirmOpen(false);
-  };
-
-  const handleReopenDemand = (demand: Demand) => {
-    reopenDemand(demand.id);
-    toast.success(`Position "${demand.title}" has been reopened`);
   };
 
   const handleSaveDemand = (updatedDemand: Demand) => {
@@ -168,7 +168,8 @@ const Demands = () => {
                   <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="open">Open</SelectItem>
                   <SelectItem value="closed">Closed</SelectItem>
-                  <SelectItem value="on_hold">On Hold</SelectItem>
+                  <SelectItem value="deleted">Deleted Demands</SelectItem>
+
                 </SelectContent>
               </Select>
               <div className="flex border border-border rounded-lg overflow-hidden">
@@ -212,12 +213,13 @@ const Demands = () => {
               key={demand.id}
               demand={demand}
               onViewDetails={() => handleViewDetails(demand)}
-              onEdit={() => handleEditDemand(demand)}
-              onClose={() => handleCloseDemand(demand)}
-              onReopen={() => handleReopenDemand(demand)}
-              onDelete={() => handleDeleteDemand(demand)}
+              onEdit={demand.status !== 'deleted' ? () => handleEditDemand(demand) : undefined}
+              onClose={demand.status !== 'deleted' ? () => handleCloseDemand(demand) : undefined}
+              onDelete={demand.status !== 'deleted' ? () => handleDeleteDemand(demand) : undefined}
+              showActions={demand.status !== 'deleted'}
               onViewApplied={() => router.push(`/candidates?demandId=${demand.id}&status=applied`)}
               onViewInterviewed={() => router.push(`/candidates?demandId=${demand.id}&status=interview_scheduled,interview_completed`)}
+              onViewRejected={() => router.push(`/candidates?demandId=${demand.id}&status=rejected`)}
               onViewOffers={() => router.push(`/candidates?demandId=${demand.id}&status=offer_rolled,offer_accepted`)}
             />
           ))}
@@ -242,10 +244,6 @@ const Demands = () => {
           onOpenChange={setIsDetailsOpen}
           mode="view"
           onSave={handleSaveDemand}
-          onClose={(id) => {
-            const demand = demands.find(d => d.id === id);
-            if (demand) handleCloseDemand(demand);
-          }}
         />
 
         <DemandDetailsDialog
