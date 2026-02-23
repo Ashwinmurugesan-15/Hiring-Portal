@@ -32,17 +32,8 @@ export const Header = ({ title, onMenuClick }: HeaderProps) => {
     { value: 'interviewer', label: 'Interviewer', description: 'Conduct Interviews' },
   ];
 
-  const roleRanks: Record<UserRole, number> = {
-    super_admin: 4,
-    admin: 3,
-    hiring_manager: 2,
-    interviewer: 1,
-  };
-
-  const originalRole = user?.originalRole || user?.role || 'interviewer';
-  const userRank = roleRanks[originalRole];
-
-  const availableRoles = roles.filter(role => roleRanks[role.value] <= userRank);
+  // All roles available for switching
+  const availableRoles = roles;
 
   return (
     <header className="h-16 bg-card border-b border-border px-4 lg:px-6 flex items-center justify-between shadow-sm">

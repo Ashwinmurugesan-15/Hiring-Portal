@@ -15,6 +15,7 @@ export const mockDemands: Demand[] = [
     applicants: 45,
     interviewed: 12,
     offers: 2,
+    rejected: 5,
     reopenedAt: new Date('2026-01-20'),
   },
   {
@@ -31,6 +32,7 @@ export const mockDemands: Demand[] = [
     applicants: 78,
     interviewed: 20,
     offers: 4,
+    rejected: 8,
   },
   {
     id: 'senior-sre',
@@ -46,6 +48,7 @@ export const mockDemands: Demand[] = [
     applicants: 23,
     interviewed: 8,
     offers: 1,
+    rejected: 3,
   },
   {
     id: 'data-engineer',
@@ -61,6 +64,7 @@ export const mockDemands: Demand[] = [
     applicants: 34,
     interviewed: 10,
     offers: 0,
+    rejected: 4,
   },
 ];
 

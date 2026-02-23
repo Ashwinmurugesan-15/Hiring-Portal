@@ -21,12 +21,13 @@ const statusConfig: Record<CandidateStatus, { label: string; className: string }
   onboarded: { label: 'Joined', className: 'bg-emerald-200 text-emerald-800 border-emerald-300' },
 };
 
-export const StatusBadge = ({ status, className }: StatusBadgeProps) => {
+export const StatusBadge = ({ status, className, extraLabel }: StatusBadgeProps & { extraLabel?: string }) => {
   const config = statusConfig[status];
 
   return (
     <Badge className={cn('border font-medium', config.className, className)}>
       {config.label}
+      {status === 'rejected' && extraLabel && <span className="ml-1 opacity-75">({extraLabel})</span>}
     </Badge>
   );
 };

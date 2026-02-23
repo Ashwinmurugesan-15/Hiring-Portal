@@ -22,13 +22,8 @@ const getDefaultPermissions = (role: UserRole): UserPermissions => {
             features: {
                 dashboard: true,
                 demands: true,
-                demandRoles: true,
                 candidates: true,
                 interviews: true,
-                offers: true,
-                onboarding: true,
-                bench: true,
-                projects: true,
             },
         };
     }
@@ -36,13 +31,8 @@ const getDefaultPermissions = (role: UserRole): UserPermissions => {
     const baseFeatures = {
         dashboard: true,
         demands: role === 'admin' || role === 'hiring_manager',
-        demandRoles: role === 'admin' || role === 'hiring_manager',
         candidates: role === 'admin' || role === 'hiring_manager',
         interviews: role === 'admin' || role === 'interviewer',
-        offers: role === 'admin',
-        onboarding: role === 'admin',
-        bench: role === 'admin',
-        projects: role === 'admin',
     };
 
     return {

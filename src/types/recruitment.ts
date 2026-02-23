@@ -44,13 +44,8 @@ export interface UserPermissions {
   features: {
     dashboard: boolean;
     demands: boolean;
-    demandRoles: boolean;
     candidates: boolean;
     interviews: boolean;
-    offers: boolean;
-    onboarding: boolean;
-    bench: boolean;
-    projects: boolean;
   };
 }
 
@@ -73,12 +68,13 @@ export interface Demand {
   location: string;
   openings: number;
   skills: string[];
-  status: 'open' | 'closed' | 'on_hold';
+  status: 'open' | 'closed' | 'on_hold' | 'deleted';
   createdBy: string;
   createdAt: Date;
   applicants: number;
   interviewed: number;
   offers: number;
+  rejected: number;
   reopenedAt?: Date;
 }
 

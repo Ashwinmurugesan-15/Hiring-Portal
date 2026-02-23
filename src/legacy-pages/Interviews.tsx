@@ -761,61 +761,6 @@ const Interviews = () => {
               {/* Round 2 Assessment */}
               {String(feedbackRound) === '2' && (
                 <div className="space-y-4 py-4">
-                  {/* Display Round 1 Feedback if available */}
-                  {/* Display Round 1 Feedback */}
-                  {/* Display Round 1 Feedback */}
-                  <div className="bg-muted/30 p-4 rounded-lg border border-border/50 mb-6">
-                    <div
-                      className="flex items-center justify-between cursor-pointer hover:bg-muted/50 p-1 rounded transition-colors"
-                      onClick={() => setIsRound1DetailsOpen(!isRound1DetailsOpen)}
-                    >
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded bg-primary/10 flex items-center justify-center text-primary">
-                          <span className="font-bold text-xs">1</span>
-                        </div>
-                        <p className="text-sm font-semibold text-foreground">Previous Round Feedback (Round 1)</p>
-                      </div>
-                      {isRound1DetailsOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-                    </div>
-
-                    {isRound1DetailsOpen && (
-                      <div className="mt-3 animate-in slide-in-from-top-2 duration-200">
-                        {hasRound1Feedback ? (
-                          <>
-                            <div className="grid grid-cols-2 gap-4 mb-3">
-                              <div>
-                                <span className="text-xs text-muted-foreground block">Recommendation</span>
-                                <span className="text-sm font-medium capitalize">{round1Feedback.recommendation?.replace(/_/g, ' ') || '-'}</span>
-                              </div>
-                              <div>
-                                <span className="text-xs text-muted-foreground block">Communication</span>
-                                <span className="text-sm font-medium">{round1Feedback.communication || '-'}</span>
-                              </div>
-                              <div>
-                                <span className="text-xs text-muted-foreground block">Technical</span>
-                                <span className="text-sm font-medium">{round1Feedback.technicalAssessment || '-'}</span>
-                              </div>
-                              <div>
-                                <span className="text-xs text-muted-foreground block">Problem Solving</span>
-                                <span className="text-sm font-medium">{round1Feedback.problemSolving || '-'}</span>
-                              </div>
-                              <div>
-                                <span className="text-xs text-muted-foreground block">Overall</span>
-                                <span className="text-sm font-medium">{round1Feedback.overallPotential || '-'}</span>
-                              </div>
-                            </div>
-                            <div>
-                              <span className="text-xs text-muted-foreground block">Comments</span>
-                              <p className="text-sm text-foreground/80 mt-1">{round1Feedback.comments || 'No comments'}</p>
-                            </div>
-                          </>
-                        ) : (
-                          <p className="text-sm text-muted-foreground italic">No feedback available for Round 1.</p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
                   <div className="flex items-center gap-2 mb-2">
                     <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-600">
                       <span className="font-bold text-sm">2</span>

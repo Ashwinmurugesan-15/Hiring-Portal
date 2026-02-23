@@ -3,24 +3,17 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useSession } from 'next-auth/react';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard,
-  Users,
-  Users2,
   Briefcase,
   Calendar,
-  FileText,
   Settings,
   ChevronLeft,
   ChevronRight,
   LogOut,
-  UserCheck,
   ClipboardList,
-  Building2,
-  FolderKanban,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -41,15 +34,9 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard', roles: ['super_admin', 'admin', 'hiring_manager', 'interviewer'], permissionKey: 'dashboard' },
-  { icon: Briefcase, label: 'Demands', href: '/demands', roles: ['super_admin', 'admin', 'hiring_manager'], permissionKey: 'demands' },
-  { icon: Users2, label: 'Demand Roles', href: '/demand-roles', roles: ['super_admin', 'admin', 'hiring_manager'], permissionKey: 'demandRoles' },
-  { icon: ClipboardList, label: 'Candidates', href: '/candidates', roles: ['super_admin', 'admin', 'hiring_manager'], permissionKey: 'candidates' },
-  { icon: Calendar, label: 'Interviews', href: '/interviews', roles: ['super_admin', 'admin', 'interviewer'], permissionKey: 'interviews' },
-  { icon: FileText, label: 'Offers', href: '/offers', roles: ['super_admin', 'admin'], permissionKey: 'offers' },
-  { icon: UserCheck, label: 'Onboarding', href: '/onboarding', roles: ['super_admin', 'admin'], permissionKey: 'onboarding' },
-  { icon: Users2, label: 'Bench Resources', href: '/bench', roles: ['super_admin', 'admin'], permissionKey: 'bench' },
-  { icon: FolderKanban, label: 'Projects', href: '/projects', roles: ['super_admin', 'admin'], permissionKey: 'projects' },
-  { icon: Users, label: 'User Management', href: '/users', roles: ['super_admin'] },
+  { icon: Briefcase, label: 'Demands', href: '/demands', roles: ['super_admin', 'admin', 'hiring_manager', 'interviewer'], permissionKey: 'demands' },
+  { icon: ClipboardList, label: 'Candidates', href: '/candidates', roles: ['super_admin', 'admin', 'hiring_manager', 'interviewer'], permissionKey: 'candidates' },
+  { icon: Calendar, label: 'Interviews', href: '/interviews', roles: ['super_admin', 'admin', 'hiring_manager', 'interviewer'], permissionKey: 'interviews' },
 ];
 
 export const Sidebar = () => {
@@ -57,46 +44,13 @@ export const Sidebar = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const pathname = usePathname();
   const { user, logout } = useAuth();
-  const { status } = useSession();
 
   const filteredNavItems = navItems.filter(item => {
     if (!user?.role) return false;
-
-    // Check if user's role is allowed
-    if (!item.roles.includes(user.role)) return false;
-
-    // Super admin role or isSuperAdmin permission always has access
-    if (user.role === 'super_admin' || user.permissions?.isSuperAdmin) return true;
-
-    // For User Management page, check canManageUsers permission
-    if (item.href === '/users') {
-      return user.permissions?.canManageUsers || false;
-    }
-
-    // Check feature permission if permissionKey exists
-    if (item.permissionKey && user.permissions?.features) {
-      return user.permissions.features[item.permissionKey as keyof typeof user.permissions.features] || false;
-    }
-
-    // Fallback: If role is matched and no specific permissionKey is needed, grant access
-    // This handles cases where permissions object might be temporarily loading
-    return !item.permissionKey;
+    return item.roles.includes(user.role);
   });
 
-  if (status === 'loading') {
-    return (
-      <aside className={cn(
-        'sidebar-gradient h-screen transition-all duration-300 border-r border-sidebar-border w-64 p-4 space-y-4'
-      )}>
-        <div className="h-8 w-3/4 bg-sidebar-border/20 animate-pulse rounded" />
-        <div className="space-y-2">
-          {[1, 2, 3, 4, 5].map(i => (
-            <div key={i} className="h-10 bg-sidebar-border/10 animate-pulse rounded" />
-          ))}
-        </div>
-      </aside>
-    );
-  }
+
 
   const getRoleDisplayName = (role: string) => {
     const roleNames: Record<string, string> = {
@@ -201,19 +155,17 @@ export const Sidebar = () => {
               </div>
             </div>
             <div className="flex gap-2">
-              {(user?.role === 'admin' || user?.role === 'super_admin') && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setSettingsOpen(true)}
-                  className="flex-1 justify-start text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent group"
-                >
-                  <AnimateIcon animateOnHover animation="spin" className="mr-2">
-                    <Settings className="h-4 w-4" />
-                  </AnimateIcon>
-                  Settings
-                </Button>
-              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSettingsOpen(true)}
+                className="flex-1 justify-start text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent group"
+              >
+                <AnimateIcon animateOnHover animation="spin" className="mr-2">
+                  <Settings className="h-4 w-4" />
+                </AnimateIcon>
+                Settings
+              </Button>
               <Button
                 variant="ghost"
                 size="sm"
@@ -227,25 +179,23 @@ export const Sidebar = () => {
           </div>
         ) : (
           <div className="space-y-2">
-            {(user?.role === 'admin' || user?.role === 'super_admin') && (
-              <Tooltip delayDuration={0}>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setSettingsOpen(true)}
-                    className="w-full text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent group"
-                  >
-                    <AnimateIcon animateOnHover animation="spin">
-                      <Settings className="h-5 w-5" />
-                    </AnimateIcon>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="right" className="bg-card text-card-foreground border">
-                  Settings
-                </TooltipContent>
-              </Tooltip>
-            )}
+            <Tooltip delayDuration={0}>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setSettingsOpen(true)}
+                  className="w-full text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent group"
+                >
+                  <AnimateIcon animateOnHover animation="spin">
+                    <Settings className="h-5 w-5" />
+                  </AnimateIcon>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="bg-card text-card-foreground border">
+                Settings
+              </TooltipContent>
+            </Tooltip>
             <Tooltip delayDuration={0}>
               <TooltipTrigger asChild>
                 <Button

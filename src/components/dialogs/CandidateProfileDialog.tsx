@@ -83,7 +83,10 @@ export const CandidateProfileDialog = ({
             <div>
               <h3 className="text-xl font-semibold">{candidate.name}</h3>
               <div className="flex items-center gap-2 mt-1">
-                <StatusBadge status={candidate.status} />
+                <StatusBadge
+                  status={candidate.status}
+                  extraLabel={candidate.status === 'rejected' ? (demand?.title || 'Unknown Position') : undefined}
+                />
                 {onViewResume && (
                   <Button
                     variant="link"
